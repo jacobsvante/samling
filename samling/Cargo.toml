@@ -4,9 +4,9 @@ version = "0.13.1"
 license = "MIT"
 edition = "2021"
 description = "App for managing apparel collections"
-repository = "https://github.com/hyperkliv/samling"
+repository = "https://github.com/jacobsvante/samling"
 documentation = "https://docs.rs/samling/"
-homepage = "https://github.com/hyperkliv/samling"
+homepage = "https://github.com/jacobsvante/samling"
 
 [dependencies]
 samling-clorinde = { version = "0.12.0", path = "../samling-clorinde" }
