@@ -22,31 +22,31 @@ time = ["dep:time"]
 [dependencies]
 ## Core dependencies
 # Postgres types
-postgres-types = { version = "0.2.8", features = ["derive"] }
+postgres-types = { version = "0.2.9", features = ["derive"] }
 # Postgres interaction
-postgres-protocol = "0.6.7"
+postgres-protocol = "0.6.8"
 # Iterator utils required for working with `postgres_protocol::types::ArrayValues`
 fallible-iterator = "0.2.0"
 
 ## Types dependencies
 # JSON or JSONB
-serde_json = { version = "1.0.134", features = ["raw_value"] }
-serde = { version = "1.0.217", features = ["derive"] }
+serde_json = { version = "1.0.140", features = ["raw_value"] }
+serde = { version = "1.0.219", features = ["derive"] }
 # TIME, DATE, TIMESTAMP or TIMESTAMPZ
-chrono = { version = "0.4.39", optional = true }
-time = { version = "0.3.37", optional = true }
+chrono = { version = "0.4.40", optional = true }
+time = { version = "0.3.41", optional = true }
 # DECIMAL
-rust_decimal = { version = "1.36.0", features = ["db-postgres"] }
+rust_decimal = { version = "1.37.1", features = ["db-postgres"] }
 
 ## Async client dependencies
 # Postgres async client
-tokio-postgres = { version = "0.7.12", default-features = false, features = [
+tokio-postgres = { version = "0.7.13", default-features = false, features = [
     "with-serde_json-1",
     "with-chrono-0_4",
     "with-time-0_3",
 ] }
 # Async utils
-async-trait = "0.1.78"
+async-trait = "0.1.88"
 futures = "0.3.31"
 
 ## Async features dependencies
