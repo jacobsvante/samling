@@ -7,7 +7,7 @@ use governor::{
     Quota, RateLimiter,
 };
 use once_cell::sync::OnceCell;
-use rand::{distributions::Alphanumeric, Rng};
+use rand::{distr::Alphanumeric, Rng};
 use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION},
     multipart::{self},
@@ -77,7 +77,7 @@ impl CloudflareApi {
         let mut res = Err(Error::ImageAlreadyExists(original_id.clone()));
         for retry_number in 0..100 {
             let id = if retry_number > 0 {
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
                 let suffix: String = (0..3).map(|_| rng.sample(Alphanumeric) as char).collect();
                 format!("{original_id}-{suffix}")
             } else {
