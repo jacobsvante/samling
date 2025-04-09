@@ -127,18 +127,21 @@ impl<'a> From<PriceListSummaryRowBorrowed<'a>> for PriceListSummaryRow {
 }
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
-pub struct PriceListRowQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct PriceListRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> PriceListRowBorrowed,
     mapper: fn(PriceListRowBorrowed) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> PriceListRowQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> PriceListRowQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(PriceListRowBorrowed) -> R) -> PriceListRowQuery<'a, C, R, N> {
+    pub fn map<R>(
+        self,
+        mapper: fn(PriceListRowBorrowed) -> R,
+    ) -> PriceListRowQuery<'c, 'a, 's, C, R, N> {
         PriceListRowQuery {
             client: self.client,
             params: self.params,
@@ -166,7 +169,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -179,21 +182,21 @@ where
         Ok(it)
     }
 }
-pub struct PriceListSummaryRowQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct PriceListSummaryRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> PriceListSummaryRowBorrowed,
     mapper: fn(PriceListSummaryRowBorrowed) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> PriceListSummaryRowQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> PriceListSummaryRowQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
     pub fn map<R>(
         self,
         mapper: fn(PriceListSummaryRowBorrowed) -> R,
-    ) -> PriceListSummaryRowQuery<'a, C, R, N> {
+    ) -> PriceListSummaryRowQuery<'c, 'a, 's, C, R, N> {
         PriceListSummaryRowQuery {
             client: self.client,
             params: self.params,
@@ -221,7 +224,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -234,18 +237,18 @@ where
         Ok(it)
     }
 }
-pub struct I32Query<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> i32,
     mapper: fn(i32) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> I32Query<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'a, C, R, N> {
+    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'c, 'a, 's, C, R, N> {
         I32Query {
             client: self.client,
             params: self.params,
@@ -273,7 +276,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -288,32 +291,17 @@ where
 }
 pub fn list_pricelists() -> ListPricelistsStmt {
     ListPricelistsStmt(crate::client::async_::Stmt::new(
-        "SELECT pricelist.*
-FROM
-    pricelist
-INNER JOIN (
-    SELECT group_pricelist.pricelist_id
-    FROM group_pricelist
-    INNER JOIN group_user
-        ON group_user.group_id = group_pricelist.group_id
-    WHERE
-        group_user.user_id = $1
-    GROUP BY group_pricelist.pricelist_id
-) AS requester_pricelists ON requester_pricelists.pricelist_id = pricelist.id
-WHERE
-    pricelist.organization_id = $2
-ORDER BY
-    pricelist.name",
+        "SELECT pricelist.* FROM pricelist INNER JOIN ( SELECT group_pricelist.pricelist_id FROM group_pricelist INNER JOIN group_user ON group_user.group_id = group_pricelist.group_id WHERE group_user.user_id = $1 GROUP BY group_pricelist.pricelist_id ) AS requester_pricelists ON requester_pricelists.pricelist_id = pricelist.id WHERE pricelist.organization_id = $2 ORDER BY pricelist.name",
     ))
 }
 pub struct ListPricelistsStmt(crate::client::async_::Stmt);
 impl ListPricelistsStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         requester_id: &'a i32,
         organization_id: &'a i32,
-    ) -> PriceListRowQuery<'a, C, PriceListRow, 2> {
+    ) -> PriceListRowQuery<'c, 'a, 's, C, PriceListRow, 2> {
         PriceListRowQuery {
             client,
             params: [requester_id, organization_id],
@@ -328,59 +316,41 @@ impl ListPricelistsStmt {
                 created_at: row.get(6),
                 updated_at: row.get(7),
             },
-            mapper: |it| <PriceListRow>::from(it),
+            mapper: |it| PriceListRow::from(it),
         }
     }
 }
-impl<'a, C: GenericClient>
+impl<'c, 'a, 's, C: GenericClient>
     crate::client::async_::Params<
+        'c,
         'a,
+        's,
         ListPricelistsParams,
-        PriceListRowQuery<'a, C, PriceListRow, 2>,
+        PriceListRowQuery<'c, 'a, 's, C, PriceListRow, 2>,
         C,
     > for ListPricelistsStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a ListPricelistsParams,
-    ) -> PriceListRowQuery<'a, C, PriceListRow, 2> {
+    ) -> PriceListRowQuery<'c, 'a, 's, C, PriceListRow, 2> {
         self.bind(client, &params.requester_id, &params.organization_id)
     }
 }
 pub fn list_pricelist_summaries() -> ListPricelistSummariesStmt {
     ListPricelistSummariesStmt(crate::client::async_::Stmt::new(
-        "
-SELECT
-    pricelist.id,
-    pricelist.name,
-    pricelist.slug,
-    pricelist.external_id
-FROM
-    pricelist
-INNER JOIN (
-    SELECT group_pricelist.pricelist_id
-    FROM group_pricelist
-    INNER JOIN group_user
-        ON group_user.group_id = group_pricelist.group_id
-    WHERE
-        group_user.user_id = $1
-    GROUP BY group_pricelist.pricelist_id
-) AS requester_pricelists ON requester_pricelists.pricelist_id = pricelist.id
-WHERE
-    pricelist.organization_id = $2
-ORDER BY
-    pricelist.name",
+        "SELECT pricelist.id, pricelist.name, pricelist.slug, pricelist.external_id FROM pricelist INNER JOIN ( SELECT group_pricelist.pricelist_id FROM group_pricelist INNER JOIN group_user ON group_user.group_id = group_pricelist.group_id WHERE group_user.user_id = $1 GROUP BY group_pricelist.pricelist_id ) AS requester_pricelists ON requester_pricelists.pricelist_id = pricelist.id WHERE pricelist.organization_id = $2 ORDER BY pricelist.name",
     ))
 }
 pub struct ListPricelistSummariesStmt(crate::client::async_::Stmt);
 impl ListPricelistSummariesStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         requester_id: &'a i32,
         organization_id: &'a i32,
-    ) -> PriceListSummaryRowQuery<'a, C, PriceListSummaryRow, 2> {
+    ) -> PriceListSummaryRowQuery<'c, 'a, 's, C, PriceListSummaryRow, 2> {
         PriceListSummaryRowQuery {
             client,
             params: [requester_id, organization_id],
@@ -391,50 +361,43 @@ impl ListPricelistSummariesStmt {
                 slug: row.get(2),
                 external_id: row.get(3),
             },
-            mapper: |it| <PriceListSummaryRow>::from(it),
+            mapper: |it| PriceListSummaryRow::from(it),
         }
     }
 }
-impl<'a, C: GenericClient>
+impl<'c, 'a, 's, C: GenericClient>
     crate::client::async_::Params<
+        'c,
         'a,
+        's,
         ListPricelistSummariesParams,
-        PriceListSummaryRowQuery<'a, C, PriceListSummaryRow, 2>,
+        PriceListSummaryRowQuery<'c, 'a, 's, C, PriceListSummaryRow, 2>,
         C,
     > for ListPricelistSummariesStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a ListPricelistSummariesParams,
-    ) -> PriceListSummaryRowQuery<'a, C, PriceListSummaryRow, 2> {
+    ) -> PriceListSummaryRowQuery<'c, 'a, 's, C, PriceListSummaryRow, 2> {
         self.bind(client, &params.requester_id, &params.organization_id)
     }
 }
 pub fn get_pricelist() -> GetPricelistStmt {
     GetPricelistStmt(crate::client::async_::Stmt::new(
-        "SELECT pricelist.*
-FROM
-    pricelist
-WHERE
-    pricelist.organization_id = $1
-    AND (
-        ($2::int IS NULL OR pricelist.id = $2)
-        AND ($3::text IS NULL OR pricelist.external_id = $3)
-        AND ($4::text IS NULL OR pricelist.slug = $4)
-    )",
+        "SELECT pricelist.* FROM pricelist WHERE pricelist.organization_id = $1 AND ( ($2::int IS NULL OR pricelist.id = $2) AND ($3::text IS NULL OR pricelist.external_id = $3) AND ($4::text IS NULL OR pricelist.slug = $4) )",
     ))
 }
 pub struct GetPricelistStmt(crate::client::async_::Stmt);
 impl GetPricelistStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a Option<i32>,
         external_id: &'a Option<T1>,
         slug: &'a Option<T2>,
-    ) -> PriceListRowQuery<'a, C, PriceListRow, 4> {
+    ) -> PriceListRowQuery<'c, 'a, 's, C, PriceListRow, 4> {
         PriceListRowQuery {
             client,
             params: [organization_id, id, external_id, slug],
@@ -449,23 +412,25 @@ impl GetPricelistStmt {
                 created_at: row.get(6),
                 updated_at: row.get(7),
             },
-            mapper: |it| <PriceListRow>::from(it),
+            mapper: |it| PriceListRow::from(it),
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
+impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
     crate::client::async_::Params<
+        'c,
         'a,
+        's,
         GetPricelistParams<T1, T2>,
-        PriceListRowQuery<'a, C, PriceListRow, 4>,
+        PriceListRowQuery<'c, 'a, 's, C, PriceListRow, 4>,
         C,
     > for GetPricelistStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a GetPricelistParams<T1, T2>,
-    ) -> PriceListRowQuery<'a, C, PriceListRow, 4> {
+    ) -> PriceListRowQuery<'c, 'a, 's, C, PriceListRow, 4> {
         self.bind(
             client,
             &params.organization_id,
@@ -477,28 +442,19 @@ impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
 }
 pub fn get_pricelist_id() -> GetPricelistIdStmt {
     GetPricelistIdStmt(crate::client::async_::Stmt::new(
-        "SELECT pricelist.id
-FROM
-    pricelist
-WHERE
-    pricelist.organization_id = $1
-    AND (
-        ($2::int IS NULL OR pricelist.id = $2)
-        AND ($3::text IS NULL OR pricelist.external_id = $3)
-        AND ($4::text IS NULL OR pricelist.slug = $4)
-    )",
+        "SELECT pricelist.id FROM pricelist WHERE pricelist.organization_id = $1 AND ( ($2::int IS NULL OR pricelist.id = $2) AND ($3::text IS NULL OR pricelist.external_id = $3) AND ($4::text IS NULL OR pricelist.slug = $4) )",
     ))
 }
 pub struct GetPricelistIdStmt(crate::client::async_::Stmt);
 impl GetPricelistIdStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a Option<i32>,
         external_id: &'a Option<T1>,
         slug: &'a Option<T2>,
-    ) -> I32Query<'a, C, i32, 4> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 4> {
         I32Query {
             client,
             params: [organization_id, id, external_id, slug],
@@ -508,15 +464,21 @@ impl GetPricelistIdStmt {
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
-    crate::client::async_::Params<'a, GetPricelistIdParams<T1, T2>, I32Query<'a, C, i32, 4>, C>
-    for GetPricelistIdStmt
+impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
+    crate::client::async_::Params<
+        'c,
+        'a,
+        's,
+        GetPricelistIdParams<T1, T2>,
+        I32Query<'c, 'a, 's, C, i32, 4>,
+        C,
+    > for GetPricelistIdStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a GetPricelistIdParams<T1, T2>,
-    ) -> I32Query<'a, C, i32, 4> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 4> {
         self.bind(
             client,
             &params.organization_id,
@@ -528,39 +490,28 @@ impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
 }
 pub fn insert_pricelist() -> InsertPricelistStmt {
     InsertPricelistStmt(crate::client::async_::Stmt::new(
-        "INSERT INTO pricelist (
-    name,
-    slug,
-    external_id,
-    organization_id,
-    created_by)
-VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5)
-RETURNING
-id",
+        "INSERT INTO pricelist ( name, slug, external_id, organization_id, created_by) VALUES ( $1, $2, $3, $4, $5) RETURNING id",
     ))
 }
 pub struct InsertPricelistStmt(crate::client::async_::Stmt);
 impl InsertPricelistStmt {
     pub fn bind<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::StringSql,
         T2: crate::StringSql,
         T3: crate::StringSql,
     >(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         name: &'a T1,
         slug: &'a T2,
         external_id: &'a Option<T3>,
         organization_id: &'a i32,
         created_by: &'a i32,
-    ) -> I32Query<'a, C, i32, 5> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 5> {
         I32Query {
             client,
             params: [name, slug, external_id, organization_id, created_by],
@@ -570,15 +521,29 @@ impl InsertPricelistStmt {
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql, T3: crate::StringSql>
-    crate::client::async_::Params<'a, InsertPricelistParams<T1, T2, T3>, I32Query<'a, C, i32, 5>, C>
-    for InsertPricelistStmt
+impl<
+        'c,
+        'a,
+        's,
+        C: GenericClient,
+        T1: crate::StringSql,
+        T2: crate::StringSql,
+        T3: crate::StringSql,
+    >
+    crate::client::async_::Params<
+        'c,
+        'a,
+        's,
+        InsertPricelistParams<T1, T2, T3>,
+        I32Query<'c, 'a, 's, C, i32, 5>,
+        C,
+    > for InsertPricelistStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a InsertPricelistParams<T1, T2, T3>,
-    ) -> I32Query<'a, C, i32, 5> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 5> {
         self.bind(
             client,
             &params.name,
@@ -591,26 +556,22 @@ impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql, T3: crate
 }
 pub fn update_pricelist() -> UpdatePricelistStmt {
     UpdatePricelistStmt(crate::client::async_::Stmt::new(
-        "UPDATE pricelist
-SET
-    name = coalesce($1, name),
-    slug = coalesce($2, slug),
-    external_id = coalesce($3, external_id)
-WHERE
-    id = $4",
+        "UPDATE pricelist SET name = coalesce($1, name), slug = coalesce($2, slug), external_id = coalesce($3, external_id) WHERE id = $4",
     ))
 }
 pub struct UpdatePricelistStmt(crate::client::async_::Stmt);
 impl UpdatePricelistStmt {
     pub async fn bind<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::StringSql,
         T2: crate::StringSql,
         T3: crate::StringSql,
     >(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         name: &'a Option<T1>,
         slug: &'a Option<T2>,
         external_id: &'a Option<T3>,
@@ -628,6 +589,8 @@ impl<
         T3: crate::StringSql,
     >
     crate::client::async_::Params<
+        'a,
+        'a,
         'a,
         UpdatePricelistParams<T1, T2, T3>,
         std::pin::Pin<
@@ -654,17 +617,14 @@ impl<
 }
 pub fn delete_pricelist() -> DeletePricelistStmt {
     DeletePricelistStmt(crate::client::async_::Stmt::new(
-        "DELETE FROM pricelist
-WHERE
-    organization_id = $1
-    AND id = $2",
+        "DELETE FROM pricelist WHERE organization_id = $1 AND id = $2",
     ))
 }
 pub struct DeletePricelistStmt(crate::client::async_::Stmt);
 impl DeletePricelistStmt {
-    pub async fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub async fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a i32,
     ) -> Result<u64, tokio_postgres::Error> {
@@ -674,6 +634,8 @@ impl DeletePricelistStmt {
 }
 impl<'a, C: GenericClient + Send + Sync>
     crate::client::async_::Params<
+        'a,
+        'a,
         'a,
         DeletePricelistParams,
         std::pin::Pin<
@@ -694,22 +656,17 @@ impl<'a, C: GenericClient + Send + Sync>
 }
 pub fn allowed_pricelist_ids() -> AllowedPricelistIdsStmt {
     AllowedPricelistIdsStmt(crate::client::async_::Stmt::new(
-        "SELECT DISTINCT group_pricelist.pricelist_id FROM group_pricelist
-INNER JOIN group_user ON group_user.group_id = group_pricelist.group_id
-INNER JOIN user_organization ON user_organization.user_id = group_user.user_id
-WHERE
-    user_organization.organization_id = $1
-    AND group_user.user_id = $2",
+        "SELECT DISTINCT group_pricelist.pricelist_id FROM group_pricelist INNER JOIN group_user ON group_user.group_id = group_pricelist.group_id INNER JOIN user_organization ON user_organization.user_id = group_user.user_id WHERE user_organization.organization_id = $1 AND group_user.user_id = $2",
     ))
 }
 pub struct AllowedPricelistIdsStmt(crate::client::async_::Stmt);
 impl AllowedPricelistIdsStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         user_id: &'a i32,
-    ) -> I32Query<'a, C, i32, 2> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 2> {
         I32Query {
             client,
             params: [organization_id, user_id],
@@ -719,15 +676,21 @@ impl AllowedPricelistIdsStmt {
         }
     }
 }
-impl<'a, C: GenericClient>
-    crate::client::async_::Params<'a, AllowedPricelistIdsParams, I32Query<'a, C, i32, 2>, C>
-    for AllowedPricelistIdsStmt
+impl<'c, 'a, 's, C: GenericClient>
+    crate::client::async_::Params<
+        'c,
+        'a,
+        's,
+        AllowedPricelistIdsParams,
+        I32Query<'c, 'a, 's, C, i32, 2>,
+        C,
+    > for AllowedPricelistIdsStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a AllowedPricelistIdsParams,
-    ) -> I32Query<'a, C, i32, 2> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 2> {
         self.bind(client, &params.organization_id, &params.user_id)
     }
 }

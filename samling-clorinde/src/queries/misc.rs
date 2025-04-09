@@ -2,18 +2,18 @@
 
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
-pub struct I32Query<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> i32,
     mapper: fn(i32) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> I32Query<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'a, C, R, N> {
+    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'c, 'a, 's, C, R, N> {
         I32Query {
             client: self.client,
             params: self.params,
@@ -41,7 +41,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -56,14 +56,15 @@ where
 }
 pub fn migrate_revision() -> MigrateRevisionStmt {
     MigrateRevisionStmt(crate::client::async_::Stmt::new(
-        "SELECT migrations.revision
-FROM
-    migrations",
+        "SELECT migrations.revision FROM migrations",
     ))
 }
 pub struct MigrateRevisionStmt(crate::client::async_::Stmt);
 impl MigrateRevisionStmt {
-    pub fn bind<'a, C: GenericClient>(&'a mut self, client: &'a C) -> I32Query<'a, C, i32, 0> {
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
+    ) -> I32Query<'c, 'a, 's, C, i32, 0> {
         I32Query {
             client,
             params: [],
@@ -80,11 +81,11 @@ pub fn set_migrate_revision() -> SetMigrateRevisionStmt {
 }
 pub struct SetMigrateRevisionStmt(crate::client::async_::Stmt);
 impl SetMigrateRevisionStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         revision: &'a i32,
-    ) -> I32Query<'a, C, i32, 1> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 1> {
         I32Query {
             client,
             params: [revision],

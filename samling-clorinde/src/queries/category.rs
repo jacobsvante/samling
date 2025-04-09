@@ -87,18 +87,21 @@ impl<'a> From<CategoryRowBorrowed<'a>> for CategoryRow {
 }
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
-pub struct CategoryRowQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct CategoryRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> CategoryRowBorrowed,
     mapper: fn(CategoryRowBorrowed) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> CategoryRowQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> CategoryRowQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(CategoryRowBorrowed) -> R) -> CategoryRowQuery<'a, C, R, N> {
+    pub fn map<R>(
+        self,
+        mapper: fn(CategoryRowBorrowed) -> R,
+    ) -> CategoryRowQuery<'c, 'a, 's, C, R, N> {
         CategoryRowQuery {
             client: self.client,
             params: self.params,
@@ -126,7 +129,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -139,18 +142,18 @@ where
         Ok(it)
     }
 }
-pub struct I32Query<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> i32,
     mapper: fn(i32) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> I32Query<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'a, C, R, N> {
+    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'c, 'a, 's, C, R, N> {
         I32Query {
             client: self.client,
             params: self.params,
@@ -178,7 +181,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -193,20 +196,16 @@ where
 }
 pub fn list_categories() -> ListCategoriesStmt {
     ListCategoriesStmt(crate::client::async_::Stmt::new(
-        "SELECT *
-FROM
-    category
-WHERE
-    category.organization_id = $1",
+        "SELECT * FROM category WHERE category.organization_id = $1",
     ))
 }
 pub struct ListCategoriesStmt(crate::client::async_::Stmt);
 impl ListCategoriesStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
-    ) -> CategoryRowQuery<'a, C, CategoryRow, 1> {
+    ) -> CategoryRowQuery<'c, 'a, 's, C, CategoryRow, 1> {
         CategoryRowQuery {
             client,
             params: [organization_id],
@@ -221,34 +220,25 @@ impl ListCategoriesStmt {
                 created_at: row.get(6),
                 updated_at: row.get(7),
             },
-            mapper: |it| <CategoryRow>::from(it),
+            mapper: |it| CategoryRow::from(it),
         }
     }
 }
 pub fn get_category_id() -> GetCategoryIdStmt {
     GetCategoryIdStmt(crate::client::async_::Stmt::new(
-        "SELECT category.id
-FROM
-    category
-WHERE
-    category.organization_id = $1
-    AND (
-        category.id = coalesce($2, -1)
-        OR category.external_id = coalesce($3, '___NON_EXISTING___')
-        OR category.slug = coalesce($4, '___NON_EXISTING___')
-    )",
+        "SELECT category.id FROM category WHERE category.organization_id = $1 AND ( category.id = coalesce($2, -1) OR category.external_id = coalesce($3, '___NON_EXISTING___') OR category.slug = coalesce($4, '___NON_EXISTING___') )",
     ))
 }
 pub struct GetCategoryIdStmt(crate::client::async_::Stmt);
 impl GetCategoryIdStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a Option<i32>,
         external_id: &'a Option<T1>,
         slug: &'a Option<T2>,
-    ) -> I32Query<'a, C, i32, 4> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 4> {
         I32Query {
             client,
             params: [organization_id, id, external_id, slug],
@@ -258,15 +248,21 @@ impl GetCategoryIdStmt {
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
-    crate::client::async_::Params<'a, GetCategoryIdParams<T1, T2>, I32Query<'a, C, i32, 4>, C>
-    for GetCategoryIdStmt
+impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
+    crate::client::async_::Params<
+        'c,
+        'a,
+        's,
+        GetCategoryIdParams<T1, T2>,
+        I32Query<'c, 'a, 's, C, i32, 4>,
+        C,
+    > for GetCategoryIdStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a GetCategoryIdParams<T1, T2>,
-    ) -> I32Query<'a, C, i32, 4> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 4> {
         self.bind(
             client,
             &params.organization_id,
@@ -278,28 +274,19 @@ impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
 }
 pub fn get_category() -> GetCategoryStmt {
     GetCategoryStmt(crate::client::async_::Stmt::new(
-        "SELECT *
-FROM
-    category
-WHERE
-    category.organization_id = $1
-    AND (
-        category.id = coalesce($2, -1)
-        OR category.external_id = coalesce($3, '___NON_EXISTING___')
-        OR category.slug = coalesce($4, '___NON_EXISTING___')
-    )",
+        "SELECT * FROM category WHERE category.organization_id = $1 AND ( category.id = coalesce($2, -1) OR category.external_id = coalesce($3, '___NON_EXISTING___') OR category.slug = coalesce($4, '___NON_EXISTING___') )",
     ))
 }
 pub struct GetCategoryStmt(crate::client::async_::Stmt);
 impl GetCategoryStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a Option<i32>,
         external_id: &'a Option<T1>,
         slug: &'a Option<T2>,
-    ) -> CategoryRowQuery<'a, C, CategoryRow, 4> {
+    ) -> CategoryRowQuery<'c, 'a, 's, C, CategoryRow, 4> {
         CategoryRowQuery {
             client,
             params: [organization_id, id, external_id, slug],
@@ -314,23 +301,25 @@ impl GetCategoryStmt {
                 created_at: row.get(6),
                 updated_at: row.get(7),
             },
-            mapper: |it| <CategoryRow>::from(it),
+            mapper: |it| CategoryRow::from(it),
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
+impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
     crate::client::async_::Params<
+        'c,
         'a,
+        's,
         GetCategoryParams<T1, T2>,
-        CategoryRowQuery<'a, C, CategoryRow, 4>,
+        CategoryRowQuery<'c, 'a, 's, C, CategoryRow, 4>,
         C,
     > for GetCategoryStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a GetCategoryParams<T1, T2>,
-    ) -> CategoryRowQuery<'a, C, CategoryRow, 4> {
+    ) -> CategoryRowQuery<'c, 'a, 's, C, CategoryRow, 4> {
         self.bind(
             client,
             &params.organization_id,
@@ -342,39 +331,28 @@ impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
 }
 pub fn insert_category() -> InsertCategoryStmt {
     InsertCategoryStmt(crate::client::async_::Stmt::new(
-        "INSERT INTO category (
-    slug,
-    external_id,
-    name,
-    organization_id,
-    created_by)
-VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5)
-RETURNING
-id",
+        "INSERT INTO category ( slug, external_id, name, organization_id, created_by) VALUES ( $1, $2, $3, $4, $5) RETURNING id",
     ))
 }
 pub struct InsertCategoryStmt(crate::client::async_::Stmt);
 impl InsertCategoryStmt {
     pub fn bind<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::StringSql,
         T2: crate::StringSql,
         T3: crate::JsonSql,
     >(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         slug: &'a T1,
         external_id: &'a Option<T2>,
         name: &'a T3,
         organization_id: &'a i32,
         created_by: &'a i32,
-    ) -> I32Query<'a, C, i32, 5> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 5> {
         I32Query {
             client,
             params: [slug, external_id, name, organization_id, created_by],
@@ -384,15 +362,29 @@ impl InsertCategoryStmt {
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql, T3: crate::JsonSql>
-    crate::client::async_::Params<'a, InsertCategoryParams<T1, T2, T3>, I32Query<'a, C, i32, 5>, C>
-    for InsertCategoryStmt
+impl<
+        'c,
+        'a,
+        's,
+        C: GenericClient,
+        T1: crate::StringSql,
+        T2: crate::StringSql,
+        T3: crate::JsonSql,
+    >
+    crate::client::async_::Params<
+        'c,
+        'a,
+        's,
+        InsertCategoryParams<T1, T2, T3>,
+        I32Query<'c, 'a, 's, C, i32, 5>,
+        C,
+    > for InsertCategoryStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a InsertCategoryParams<T1, T2, T3>,
-    ) -> I32Query<'a, C, i32, 5> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 5> {
         self.bind(
             client,
             &params.slug,
@@ -405,26 +397,22 @@ impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql, T3: crate
 }
 pub fn update_category() -> UpdateCategoryStmt {
     UpdateCategoryStmt(crate::client::async_::Stmt::new(
-        "UPDATE category
-SET
-    slug = coalesce($1, slug),
-    external_id = coalesce($2, external_id),
-    name = coalesce($3, name)
-WHERE
-    category.id = $4",
+        "UPDATE category SET slug = coalesce($1, slug), external_id = coalesce($2, external_id), name = coalesce($3, name) WHERE category.id = $4",
     ))
 }
 pub struct UpdateCategoryStmt(crate::client::async_::Stmt);
 impl UpdateCategoryStmt {
     pub async fn bind<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::StringSql,
         T2: crate::StringSql,
         T3: crate::JsonSql,
     >(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         slug: &'a Option<T1>,
         external_id: &'a Option<T2>,
         name: &'a Option<T3>,
@@ -442,6 +430,8 @@ impl<
         T3: crate::JsonSql,
     >
     crate::client::async_::Params<
+        'a,
+        'a,
         'a,
         UpdateCategoryParams<T1, T2, T3>,
         std::pin::Pin<
@@ -468,17 +458,14 @@ impl<
 }
 pub fn delete_category() -> DeleteCategoryStmt {
     DeleteCategoryStmt(crate::client::async_::Stmt::new(
-        "DELETE FROM category
-WHERE
-    organization_id = $1
-    AND id = $2",
+        "DELETE FROM category WHERE organization_id = $1 AND id = $2",
     ))
 }
 pub struct DeleteCategoryStmt(crate::client::async_::Stmt);
 impl DeleteCategoryStmt {
-    pub async fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub async fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a i32,
     ) -> Result<u64, tokio_postgres::Error> {
@@ -488,6 +475,8 @@ impl DeleteCategoryStmt {
 }
 impl<'a, C: GenericClient + Send + Sync>
     crate::client::async_::Params<
+        'a,
+        'a,
         'a,
         DeleteCategoryParams,
         std::pin::Pin<
@@ -508,19 +497,17 @@ impl<'a, C: GenericClient + Send + Sync>
 }
 pub fn associate_style_categories() -> AssociateStyleCategoriesStmt {
     AssociateStyleCategoriesStmt(crate::client::async_::Stmt::new(
-        "SELECT *
-FROM
-    associate_style_categories($1, $2)",
+        "SELECT * FROM associate_style_categories($1, $2)",
     ))
 }
 pub struct AssociateStyleCategoriesStmt(crate::client::async_::Stmt);
 impl AssociateStyleCategoriesStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::ArraySql<Item = i32>>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::ArraySql<Item = i32>>(
+        &'s mut self,
+        client: &'c C,
         style_id: &'a i32,
         category_ids: &'a T1,
-    ) -> I32Query<'a, C, i32, 2> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 2> {
         I32Query {
             client,
             params: [style_id, category_ids],
@@ -530,19 +517,21 @@ impl AssociateStyleCategoriesStmt {
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::ArraySql<Item = i32>>
+impl<'c, 'a, 's, C: GenericClient, T1: crate::ArraySql<Item = i32>>
     crate::client::async_::Params<
+        'c,
         'a,
+        's,
         AssociateStyleCategoriesParams<T1>,
-        I32Query<'a, C, i32, 2>,
+        I32Query<'c, 'a, 's, C, i32, 2>,
         C,
     > for AssociateStyleCategoriesStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a AssociateStyleCategoriesParams<T1>,
-    ) -> I32Query<'a, C, i32, 2> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 2> {
         self.bind(client, &params.style_id, &params.category_ids)
     }
 }

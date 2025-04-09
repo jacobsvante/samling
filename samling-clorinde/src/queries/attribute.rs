@@ -113,18 +113,21 @@ impl<'a> From<AttributeRowBorrowed<'a>> for AttributeRow {
 }
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
-pub struct AttributeRowQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct AttributeRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> AttributeRowBorrowed,
     mapper: fn(AttributeRowBorrowed) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> AttributeRowQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> AttributeRowQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(AttributeRowBorrowed) -> R) -> AttributeRowQuery<'a, C, R, N> {
+    pub fn map<R>(
+        self,
+        mapper: fn(AttributeRowBorrowed) -> R,
+    ) -> AttributeRowQuery<'c, 'a, 's, C, R, N> {
         AttributeRowQuery {
             client: self.client,
             params: self.params,
@@ -152,7 +155,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -165,18 +168,18 @@ where
         Ok(it)
     }
 }
-pub struct I32Query<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> i32,
     mapper: fn(i32) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> I32Query<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'a, C, R, N> {
+    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'c, 'a, 's, C, R, N> {
         I32Query {
             client: self.client,
             params: self.params,
@@ -204,7 +207,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -219,26 +222,16 @@ where
 }
 pub fn list_attributes() -> ListAttributesStmt {
     ListAttributesStmt(crate::client::async_::Stmt::new(
-        "SELECT
-    attribute.*,
-    to_jsonb(attributetype.*) AS \"type\"
-FROM
-    attribute
-INNER JOIN attributetype
-    ON attributetype.id = attribute.type_id
-WHERE
-    attribute.organization_id = $1
-ORDER BY
-    attribute.updated_at DESC",
+        "SELECT attribute.*, to_jsonb(attributetype.*) AS \"type\" FROM attribute INNER JOIN attributetype ON attributetype.id = attribute.type_id WHERE attribute.organization_id = $1 ORDER BY attribute.updated_at DESC",
     ))
 }
 pub struct ListAttributesStmt(crate::client::async_::Stmt);
 impl ListAttributesStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
-    ) -> AttributeRowQuery<'a, C, AttributeRow, 1> {
+    ) -> AttributeRowQuery<'c, 'a, 's, C, AttributeRow, 1> {
         AttributeRowQuery {
             client,
             params: [organization_id],
@@ -256,38 +249,25 @@ impl ListAttributesStmt {
                 updated_at: row.get(9),
                 r#type: row.get(10),
             },
-            mapper: |it| <AttributeRow>::from(it),
+            mapper: |it| AttributeRow::from(it),
         }
     }
 }
 pub fn get_attribute() -> GetAttributeStmt {
     GetAttributeStmt(crate::client::async_::Stmt::new(
-        "SELECT
-    attribute.*,
-    to_jsonb(attributetype.*) AS \"type\"
-FROM
-    attribute
-INNER JOIN attributetype
-    ON attributetype.id = attribute.type_id
-WHERE
-    attribute.organization_id = $1
-    AND ((attribute.id = coalesce($2, -1))
-        OR (
-            attribute.external_id = coalesce($3, '___NON_EXISTING___')
-        )
-        OR (attribute.slug = coalesce($4, '___NON_EXISTING___')))",
+        "SELECT attribute.*, to_jsonb(attributetype.*) AS \"type\" FROM attribute INNER JOIN attributetype ON attributetype.id = attribute.type_id WHERE attribute.organization_id = $1 AND ((attribute.id = coalesce($2, -1)) OR ( attribute.external_id = coalesce($3, '___NON_EXISTING___') ) OR (attribute.slug = coalesce($4, '___NON_EXISTING___')))",
     ))
 }
 pub struct GetAttributeStmt(crate::client::async_::Stmt);
 impl GetAttributeStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a Option<i32>,
         external_id: &'a Option<T1>,
         slug: &'a Option<T2>,
-    ) -> AttributeRowQuery<'a, C, AttributeRow, 4> {
+    ) -> AttributeRowQuery<'c, 'a, 's, C, AttributeRow, 4> {
         AttributeRowQuery {
             client,
             params: [organization_id, id, external_id, slug],
@@ -305,23 +285,25 @@ impl GetAttributeStmt {
                 updated_at: row.get(9),
                 r#type: row.get(10),
             },
-            mapper: |it| <AttributeRow>::from(it),
+            mapper: |it| AttributeRow::from(it),
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
+impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
     crate::client::async_::Params<
+        'c,
         'a,
+        's,
         GetAttributeParams<T1, T2>,
-        AttributeRowQuery<'a, C, AttributeRow, 4>,
+        AttributeRowQuery<'c, 'a, 's, C, AttributeRow, 4>,
         C,
     > for GetAttributeStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a GetAttributeParams<T1, T2>,
-    ) -> AttributeRowQuery<'a, C, AttributeRow, 4> {
+    ) -> AttributeRowQuery<'c, 'a, 's, C, AttributeRow, 4> {
         self.bind(
             client,
             &params.organization_id,
@@ -333,28 +315,19 @@ impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
 }
 pub fn get_attribute_id() -> GetAttributeIdStmt {
     GetAttributeIdStmt(crate::client::async_::Stmt::new(
-        "SELECT attribute.id
-FROM
-    attribute
-WHERE
-    attribute.organization_id = $1
-    AND ((attribute.id = coalesce($2, -1))
-        OR (
-            attribute.external_id = coalesce($3, '___NON_EXISTING___')
-        )
-        OR (attribute.slug = coalesce($4, '___NON_EXISTING___')))",
+        "SELECT attribute.id FROM attribute WHERE attribute.organization_id = $1 AND ((attribute.id = coalesce($2, -1)) OR ( attribute.external_id = coalesce($3, '___NON_EXISTING___') ) OR (attribute.slug = coalesce($4, '___NON_EXISTING___')))",
     ))
 }
 pub struct GetAttributeIdStmt(crate::client::async_::Stmt);
 impl GetAttributeIdStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a Option<i32>,
         external_id: &'a Option<T1>,
         slug: &'a Option<T2>,
-    ) -> I32Query<'a, C, i32, 4> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 4> {
         I32Query {
             client,
             params: [organization_id, id, external_id, slug],
@@ -364,15 +337,21 @@ impl GetAttributeIdStmt {
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
-    crate::client::async_::Params<'a, GetAttributeIdParams<T1, T2>, I32Query<'a, C, i32, 4>, C>
-    for GetAttributeIdStmt
+impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
+    crate::client::async_::Params<
+        'c,
+        'a,
+        's,
+        GetAttributeIdParams<T1, T2>,
+        I32Query<'c, 'a, 's, C, i32, 4>,
+        C,
+    > for GetAttributeIdStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a GetAttributeIdParams<T1, T2>,
-    ) -> I32Query<'a, C, i32, 4> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 4> {
         self.bind(
             client,
             &params.organization_id,
@@ -384,38 +363,23 @@ impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
 }
 pub fn insert_attribute() -> InsertAttributeStmt {
     InsertAttributeStmt(crate::client::async_::Stmt::new(
-        "INSERT INTO attribute (
-    title,
-    description,
-    type_id,
-    slug,
-    external_id,
-    organization_id,
-    created_by)
-VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5,
-    $6,
-    $7)
-RETURNING
-id",
+        "INSERT INTO attribute ( title, description, type_id, slug, external_id, organization_id, created_by) VALUES ( $1, $2, $3, $4, $5, $6, $7) RETURNING id",
     ))
 }
 pub struct InsertAttributeStmt(crate::client::async_::Stmt);
 impl InsertAttributeStmt {
     pub fn bind<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::JsonSql,
         T2: crate::JsonSql,
         T3: crate::StringSql,
         T4: crate::StringSql,
     >(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         title: &'a T1,
         description: &'a T2,
         type_id: &'a i32,
@@ -423,7 +387,7 @@ impl InsertAttributeStmt {
         external_id: &'a Option<T4>,
         organization_id: &'a i32,
         created_by: &'a i32,
-    ) -> I32Query<'a, C, i32, 7> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 7> {
         I32Query {
             client,
             params: [
@@ -442,7 +406,9 @@ impl InsertAttributeStmt {
     }
 }
 impl<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::JsonSql,
         T2: crate::JsonSql,
@@ -450,17 +416,19 @@ impl<
         T4: crate::StringSql,
     >
     crate::client::async_::Params<
+        'c,
         'a,
+        's,
         InsertAttributeParams<T1, T2, T3, T4>,
-        I32Query<'a, C, i32, 7>,
+        I32Query<'c, 'a, 's, C, i32, 7>,
         C,
     > for InsertAttributeStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a InsertAttributeParams<T1, T2, T3, T4>,
-    ) -> I32Query<'a, C, i32, 7> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 7> {
         self.bind(
             client,
             &params.title,
@@ -475,30 +443,23 @@ impl<
 }
 pub fn update_attribute() -> UpdateAttributeStmt {
     UpdateAttributeStmt(crate::client::async_::Stmt::new(
-        "UPDATE
-attribute
-SET
-    type_id = coalesce($1, type_id),
-    title = coalesce($2, title),
-    description = coalesce($3, description),
-    slug = coalesce($4, slug),
-    external_id = coalesce($5, external_id)
-WHERE
-    id = $6",
+        "UPDATE attribute SET type_id = coalesce($1, type_id), title = coalesce($2, title), description = coalesce($3, description), slug = coalesce($4, slug), external_id = coalesce($5, external_id) WHERE id = $6",
     ))
 }
 pub struct UpdateAttributeStmt(crate::client::async_::Stmt);
 impl UpdateAttributeStmt {
     pub async fn bind<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::JsonSql,
         T2: crate::JsonSql,
         T3: crate::StringSql,
         T4: crate::StringSql,
     >(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         type_id: &'a Option<i32>,
         title: &'a Option<T1>,
         description: &'a Option<T2>,
@@ -521,6 +482,8 @@ impl<
         T4: crate::StringSql,
     >
     crate::client::async_::Params<
+        'a,
+        'a,
         'a,
         UpdateAttributeParams<T1, T2, T3, T4>,
         std::pin::Pin<
@@ -549,16 +512,14 @@ impl<
 }
 pub fn delete_attribute() -> DeleteAttributeStmt {
     DeleteAttributeStmt(crate::client::async_::Stmt::new(
-        "DELETE FROM attribute
-WHERE organization_id = $1
-      AND id = $2",
+        "DELETE FROM attribute WHERE organization_id = $1 AND id = $2",
     ))
 }
 pub struct DeleteAttributeStmt(crate::client::async_::Stmt);
 impl DeleteAttributeStmt {
-    pub async fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub async fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a i32,
     ) -> Result<u64, tokio_postgres::Error> {
@@ -568,6 +529,8 @@ impl DeleteAttributeStmt {
 }
 impl<'a, C: GenericClient + Send + Sync>
     crate::client::async_::Params<
+        'a,
+        'a,
         'a,
         DeleteAttributeParams,
         std::pin::Pin<
@@ -588,19 +551,17 @@ impl<'a, C: GenericClient + Send + Sync>
 }
 pub fn associate_style_attributes() -> AssociateStyleAttributesStmt {
     AssociateStyleAttributesStmt(crate::client::async_::Stmt::new(
-        "SELECT *
-FROM
-    associate_style_attributes($1, $2)",
+        "SELECT * FROM associate_style_attributes($1, $2)",
     ))
 }
 pub struct AssociateStyleAttributesStmt(crate::client::async_::Stmt);
 impl AssociateStyleAttributesStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::ArraySql<Item = i32>>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::ArraySql<Item = i32>>(
+        &'s mut self,
+        client: &'c C,
         style_id: &'a i32,
         attribute_ids: &'a T1,
-    ) -> I32Query<'a, C, i32, 2> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 2> {
         I32Query {
             client,
             params: [style_id, attribute_ids],
@@ -610,19 +571,21 @@ impl AssociateStyleAttributesStmt {
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::ArraySql<Item = i32>>
+impl<'c, 'a, 's, C: GenericClient, T1: crate::ArraySql<Item = i32>>
     crate::client::async_::Params<
+        'c,
         'a,
+        's,
         AssociateStyleAttributesParams<T1>,
-        I32Query<'a, C, i32, 2>,
+        I32Query<'c, 'a, 's, C, i32, 2>,
         C,
     > for AssociateStyleAttributesStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a AssociateStyleAttributesParams<T1>,
-    ) -> I32Query<'a, C, i32, 2> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 2> {
         self.bind(client, &params.style_id, &params.attribute_ids)
     }
 }

@@ -1,4 +1,4 @@
-# This file was generated with `clorinde`. Do not modify
+# This file was generated with `clorinde`. Do not modify.
 [package]
 name = "samling-clorinde"
 version = "0.12.0"
@@ -10,11 +10,10 @@ homepage = "https://github.com/jacobsvante/samling"
 repository = "https://github.com/jacobsvante/samling"
 license = "MIT"
 
-
 [features]
 default = ["deadpool", "chrono"]
 deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
-wasm-async = ["tokio-postgres/js", "chrono/wasmbind", "time/wasm-bindgen"]
+wasm-async = ["tokio-postgres/js", "chrono?/wasmbind", "time?/wasm-bindgen"]
 
 chrono = ["dep:chrono"]
 time = ["dep:time"]
@@ -25,28 +24,24 @@ time = ["dep:time"]
 postgres-types = { version = "0.2.9", features = ["derive"] }
 # Postgres interaction
 postgres-protocol = "0.6.8"
-# Iterator utils required for working with `postgres_protocol::types::ArrayValues`
-fallible-iterator = "0.2.0"
 
 ## Types dependencies
+# TIME, DATE, TIMESTAMP or TIMESTAMPZ
+chrono = { version = "0.4.40", optional = true, features = ["serde"] }
+time = { version = "0.3.39", optional = true }
+# DECIMAL
+rust_decimal = { version = "1.36.0", features = ["db-postgres"] }
 # JSON or JSONB
 serde_json = { version = "1.0.140", features = ["raw_value"] }
-serde = { version = "1.0.219", features = ["derive"] }
-# TIME, DATE, TIMESTAMP or TIMESTAMPZ
-chrono = { version = "0.4.40", optional = true }
-time = { version = "0.3.41", optional = true }
-# DECIMAL
-rust_decimal = { version = "1.37.1", features = ["db-postgres"] }
+serde = { version = "1.0.218", features = ["derive"] }
+
+# Postgres
+postgres = { version = "0.19.10", features = ["with-chrono-0_4", "with-time-0_3", "with-serde_json-1"] }
 
 ## Async client dependencies
 # Postgres async client
-tokio-postgres = { version = "0.7.13", default-features = false, features = [
-    "with-serde_json-1",
-    "with-chrono-0_4",
-    "with-time-0_3",
-] }
+tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4", "with-time-0_3", "with-serde_json-1"] }
 # Async utils
-async-trait = "0.1.88"
 futures = "0.3.31"
 
 ## Async features dependencies

@@ -1,6 +1,6 @@
 // This file was generated with `clorinde`. Do not modify.
 
-#[cfg(feature = "chrono")]
+#[cfg(all(feature = "chrono", not(feature = "time")))]
 pub mod time {
     pub type Timestamp = chrono::NaiveDateTime;
     pub type TimestampTz = chrono::DateTime<chrono::FixedOffset>;

@@ -1740,6 +1740,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "350e9b48cbc6b0e028b0473b114454c6316e57336ee184ceab6e53f72c178b3e"
 
 [[package]]
+name = "postgres"
+version = "0.19.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "363e6dfbdd780d3aa3597b6eb430db76bb315fa9bad7fae595bb8def808b8470"
+dependencies = [
+ "bytes",
+ "fallible-iterator",
+ "futures-util",
+ "log",
+ "tokio",
+ "tokio-postgres",
+]
+
+[[package]]
 name = "postgres-derive"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2294,11 +2308,10 @@ dependencies = [
 name = "samling-clorinde"
 version = "0.12.0"
 dependencies = [
- "async-trait",
  "chrono",
  "deadpool-postgres",
- "fallible-iterator",
  "futures",
+ "postgres",
  "postgres-protocol",
  "postgres-types",
  "rust_decimal",

@@ -52,21 +52,21 @@ impl<'a> From<OrganizationRowBorrowed<'a>> for OrganizationRow {
 }
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
-pub struct OrganizationRowQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct OrganizationRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> OrganizationRowBorrowed,
     mapper: fn(OrganizationRowBorrowed) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> OrganizationRowQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> OrganizationRowQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
     pub fn map<R>(
         self,
         mapper: fn(OrganizationRowBorrowed) -> R,
-    ) -> OrganizationRowQuery<'a, C, R, N> {
+    ) -> OrganizationRowQuery<'c, 'a, 's, C, R, N> {
         OrganizationRowQuery {
             client: self.client,
             params: self.params,
@@ -94,7 +94,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -107,18 +107,18 @@ where
         Ok(it)
     }
 }
-pub struct I32Query<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> i32,
     mapper: fn(i32) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> I32Query<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'a, C, R, N> {
+    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'c, 'a, 's, C, R, N> {
         I32Query {
             client: self.client,
             params: self.params,
@@ -146,7 +146,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -161,20 +161,16 @@ where
 }
 pub fn get_organization() -> GetOrganizationStmt {
     GetOrganizationStmt(crate::client::async_::Stmt::new(
-        "SELECT *
-FROM
-    organization
-WHERE
-    organization.id = $1",
+        "SELECT * FROM organization WHERE organization.id = $1",
     ))
 }
 pub struct GetOrganizationStmt(crate::client::async_::Stmt);
 impl GetOrganizationStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         id: &'a i32,
-    ) -> OrganizationRowQuery<'a, C, OrganizationRow, 1> {
+    ) -> OrganizationRowQuery<'c, 'a, 's, C, OrganizationRow, 1> {
         OrganizationRowQuery {
             client,
             params: [id],
@@ -187,26 +183,22 @@ impl GetOrganizationStmt {
                 updated_at: row.get(4),
                 logo_url: row.get(5),
             },
-            mapper: |it| <OrganizationRow>::from(it),
+            mapper: |it| OrganizationRow::from(it),
         }
     }
 }
 pub fn get_organization_id() -> GetOrganizationIdStmt {
     GetOrganizationIdStmt(crate::client::async_::Stmt::new(
-        "SELECT organization.id
-FROM
-    organization
-WHERE
-    organization.id = $1",
+        "SELECT organization.id FROM organization WHERE organization.id = $1",
     ))
 }
 pub struct GetOrganizationIdStmt(crate::client::async_::Stmt);
 impl GetOrganizationIdStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         id: &'a i32,
-    ) -> I32Query<'a, C, i32, 1> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 1> {
         I32Query {
             client,
             params: [id],
@@ -218,27 +210,18 @@ impl GetOrganizationIdStmt {
 }
 pub fn insert_organization() -> InsertOrganizationStmt {
     InsertOrganizationStmt(crate::client::async_::Stmt::new(
-        "INSERT INTO organization (
-    name,
-    logo_url,
-    created_by)
-VALUES (
-    $1,
-    $2,
-    $3)
-RETURNING
-*",
+        "INSERT INTO organization ( name, logo_url, created_by) VALUES ( $1, $2, $3) RETURNING *",
     ))
 }
 pub struct InsertOrganizationStmt(crate::client::async_::Stmt);
 impl InsertOrganizationStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
+        &'s mut self,
+        client: &'c C,
         name: &'a T1,
         logo_url: &'a Option<T2>,
         created_by: &'a i32,
-    ) -> OrganizationRowQuery<'a, C, OrganizationRow, 3> {
+    ) -> OrganizationRowQuery<'c, 'a, 's, C, OrganizationRow, 3> {
         OrganizationRowQuery {
             client,
             params: [name, logo_url, created_by],
@@ -251,48 +234,42 @@ impl InsertOrganizationStmt {
                 updated_at: row.get(4),
                 logo_url: row.get(5),
             },
-            mapper: |it| <OrganizationRow>::from(it),
+            mapper: |it| OrganizationRow::from(it),
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
+impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
     crate::client::async_::Params<
+        'c,
         'a,
+        's,
         InsertOrganizationParams<T1, T2>,
-        OrganizationRowQuery<'a, C, OrganizationRow, 3>,
+        OrganizationRowQuery<'c, 'a, 's, C, OrganizationRow, 3>,
         C,
     > for InsertOrganizationStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a InsertOrganizationParams<T1, T2>,
-    ) -> OrganizationRowQuery<'a, C, OrganizationRow, 3> {
+    ) -> OrganizationRowQuery<'c, 'a, 's, C, OrganizationRow, 3> {
         self.bind(client, &params.name, &params.logo_url, &params.created_by)
     }
 }
 pub fn update_organization() -> UpdateOrganizationStmt {
     UpdateOrganizationStmt(crate::client::async_::Stmt::new(
-        "UPDATE
-organization
-SET
-    name = coalesce($1, name),
-    logo_url = coalesce($2, logo_url)
-WHERE
-    id = $3
-RETURNING
-*",
+        "UPDATE organization SET name = coalesce($1, name), logo_url = coalesce($2, logo_url) WHERE id = $3 RETURNING *",
     ))
 }
 pub struct UpdateOrganizationStmt(crate::client::async_::Stmt);
 impl UpdateOrganizationStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
+        &'s mut self,
+        client: &'c C,
         name: &'a Option<T1>,
         logo_url: &'a Option<T2>,
         id: &'a i32,
-    ) -> OrganizationRowQuery<'a, C, OrganizationRow, 3> {
+    ) -> OrganizationRowQuery<'c, 'a, 's, C, OrganizationRow, 3> {
         OrganizationRowQuery {
             client,
             params: [name, logo_url, id],
@@ -305,41 +282,40 @@ impl UpdateOrganizationStmt {
                 updated_at: row.get(4),
                 logo_url: row.get(5),
             },
-            mapper: |it| <OrganizationRow>::from(it),
+            mapper: |it| OrganizationRow::from(it),
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
+impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
     crate::client::async_::Params<
+        'c,
         'a,
+        's,
         UpdateOrganizationParams<T1, T2>,
-        OrganizationRowQuery<'a, C, OrganizationRow, 3>,
+        OrganizationRowQuery<'c, 'a, 's, C, OrganizationRow, 3>,
         C,
     > for UpdateOrganizationStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a UpdateOrganizationParams<T1, T2>,
-    ) -> OrganizationRowQuery<'a, C, OrganizationRow, 3> {
+    ) -> OrganizationRowQuery<'c, 'a, 's, C, OrganizationRow, 3> {
         self.bind(client, &params.name, &params.logo_url, &params.id)
     }
 }
 pub fn delete_organization() -> DeleteOrganizationStmt {
     DeleteOrganizationStmt(crate::client::async_::Stmt::new(
-        "DELETE FROM organization
-WHERE id = $1
-RETURNING
-id",
+        "DELETE FROM organization WHERE id = $1 RETURNING id",
     ))
 }
 pub struct DeleteOrganizationStmt(crate::client::async_::Stmt);
 impl DeleteOrganizationStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         id: &'a i32,
-    ) -> I32Query<'a, C, i32, 1> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 1> {
         I32Query {
             client,
             params: [id],
@@ -351,22 +327,16 @@ impl DeleteOrganizationStmt {
 }
 pub fn list_user_organizations() -> ListUserOrganizationsStmt {
     ListUserOrganizationsStmt(crate::client::async_::Stmt::new(
-        "SELECT organization.*
-FROM
-    organization
-INNER JOIN
-    user_organization ON organization.id = user_organization.organization_id
-WHERE
-    user_organization.user_id = $1",
+        "SELECT organization.* FROM organization INNER JOIN user_organization ON organization.id = user_organization.organization_id WHERE user_organization.user_id = $1",
     ))
 }
 pub struct ListUserOrganizationsStmt(crate::client::async_::Stmt);
 impl ListUserOrganizationsStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         user_id: &'a i32,
-    ) -> OrganizationRowQuery<'a, C, OrganizationRow, 1> {
+    ) -> OrganizationRowQuery<'c, 'a, 's, C, OrganizationRow, 1> {
         OrganizationRowQuery {
             client,
             params: [user_id],
@@ -379,7 +349,7 @@ impl ListUserOrganizationsStmt {
                 updated_at: row.get(4),
                 logo_url: row.get(5),
             },
-            mapper: |it| <OrganizationRow>::from(it),
+            mapper: |it| OrganizationRow::from(it),
         }
     }
 }

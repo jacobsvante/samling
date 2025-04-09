@@ -128,18 +128,18 @@ impl<'a> From<PriceRowBorrowed<'a>> for PriceRow {
 }
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
-pub struct PriceRowQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct PriceRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> PriceRowBorrowed,
     mapper: fn(PriceRowBorrowed) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> PriceRowQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> PriceRowQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(PriceRowBorrowed) -> R) -> PriceRowQuery<'a, C, R, N> {
+    pub fn map<R>(self, mapper: fn(PriceRowBorrowed) -> R) -> PriceRowQuery<'c, 'a, 's, C, R, N> {
         PriceRowQuery {
             client: self.client,
             params: self.params,
@@ -167,7 +167,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -180,18 +180,18 @@ where
         Ok(it)
     }
 }
-pub struct I32Query<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> i32,
     mapper: fn(i32) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> I32Query<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'a, C, R, N> {
+    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'c, 'a, 's, C, R, N> {
         I32Query {
             client: self.client,
             params: self.params,
@@ -219,7 +219,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -234,57 +234,26 @@ where
 }
 pub fn select_prices() -> SelectPricesStmt {
     SelectPricesStmt(crate::client::async_::Stmt::new(
-        "SELECT
-    price.*,
-    jsonb_build_object(
-        'id',
-        style.id,
-        'external_id',
-        style.external_id,
-        'slug',
-        style.slug,
-        'number',
-        style.number,
-        'name',
-        style.name
-    ) AS \"style\",
-    jsonb_build_object(
-        'id',
-        pricelist.id,
-        'external_id',
-        pricelist.external_id,
-        'slug',
-        pricelist.slug,
-        'name',
-        pricelist.name
-    ) AS \"list\"
-FROM
-    price
-INNER JOIN style ON style.id = price.style_id
-INNER JOIN pricelist ON pricelist.id = price.list_id
-WHERE
-    price.organization_id = $1
-    AND ($2::int[] IS NULL OR price.id = any($2))
-    AND ($3::text[] IS NULL OR price.external_id = any($3))
-ORDER BY
-    price.updated_at DESC",
+        "SELECT price.*, jsonb_build_object( 'id', style.id, 'external_id', style.external_id, 'slug', style.slug, 'number', style.number, 'name', style.name ) AS \"style\", jsonb_build_object( 'id', pricelist.id, 'external_id', pricelist.external_id, 'slug', pricelist.slug, 'name', pricelist.name ) AS \"list\" FROM price INNER JOIN style ON style.id = price.style_id INNER JOIN pricelist ON pricelist.id = price.list_id WHERE price.organization_id = $1 AND ($2::int[] IS NULL OR price.id = any($2)) AND ($3::text[] IS NULL OR price.external_id = any($3)) ORDER BY price.updated_at DESC",
     ))
 }
 pub struct SelectPricesStmt(crate::client::async_::Stmt);
 impl SelectPricesStmt {
     pub fn bind<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::ArraySql<Item = i32>,
         T2: crate::StringSql,
         T3: crate::ArraySql<Item = T2>,
     >(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         ids: &'a Option<T1>,
         external_ids: &'a Option<T3>,
-    ) -> PriceRowQuery<'a, C, PriceRow, 3> {
+    ) -> PriceRowQuery<'c, 'a, 's, C, PriceRow, 3> {
         PriceRowQuery {
             client,
             params: [organization_id, ids, external_ids],
@@ -307,29 +276,33 @@ impl SelectPricesStmt {
                 style: row.get(14),
                 list: row.get(15),
             },
-            mapper: |it| <PriceRow>::from(it),
+            mapper: |it| PriceRow::from(it),
         }
     }
 }
 impl<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::ArraySql<Item = i32>,
         T2: crate::StringSql,
         T3: crate::ArraySql<Item = T2>,
     >
     crate::client::async_::Params<
+        'c,
         'a,
+        's,
         SelectPricesParams<T1, T2, T3>,
-        PriceRowQuery<'a, C, PriceRow, 3>,
+        PriceRowQuery<'c, 'a, 's, C, PriceRow, 3>,
         C,
     > for SelectPricesStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a SelectPricesParams<T1, T2, T3>,
-    ) -> PriceRowQuery<'a, C, PriceRow, 3> {
+    ) -> PriceRowQuery<'c, 'a, 's, C, PriceRow, 3> {
         self.bind(
             client,
             &params.organization_id,
@@ -340,24 +313,18 @@ impl<
 }
 pub fn get_price_id() -> GetPriceIdStmt {
     GetPriceIdStmt(crate::client::async_::Stmt::new(
-        "SELECT price.id
-FROM
-    price
-WHERE
-    price.organization_id = $1
-    AND ($2::int IS NULL OR price.id = $2)
-    AND ($3::text IS NULL OR price.external_id = $3)",
+        "SELECT price.id FROM price WHERE price.organization_id = $1 AND ($2::int IS NULL OR price.id = $2) AND ($3::text IS NULL OR price.external_id = $3)",
     ))
 }
 pub struct GetPriceIdStmt(crate::client::async_::Stmt);
 impl GetPriceIdStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a Option<i32>,
         external_id: &'a Option<T1>,
-    ) -> I32Query<'a, C, i32, 3> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 3> {
         I32Query {
             client,
             params: [organization_id, id, external_id],
@@ -367,15 +334,21 @@ impl GetPriceIdStmt {
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql>
-    crate::client::async_::Params<'a, GetPriceIdParams<T1>, I32Query<'a, C, i32, 3>, C>
-    for GetPriceIdStmt
+impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
+    crate::client::async_::Params<
+        'c,
+        'a,
+        's,
+        GetPriceIdParams<T1>,
+        I32Query<'c, 'a, 's, C, i32, 3>,
+        C,
+    > for GetPriceIdStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a GetPriceIdParams<T1>,
-    ) -> I32Query<'a, C, i32, 3> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 3> {
         self.bind(
             client,
             &params.organization_id,
@@ -386,45 +359,22 @@ impl<'a, C: GenericClient, T1: crate::StringSql>
 }
 pub fn insert_price() -> InsertPriceStmt {
     InsertPriceStmt(crate::client::async_::Stmt::new(
-        "INSERT INTO price (
-    type,
-    uom,
-    currency,
-    amount,
-    \"start\",
-    \"end\",
-    style_id,
-    list_id,
-    external_id,
-    organization_id,
-    created_by)
-VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5,
-    $6,
-    $7,
-    $8,
-    $9,
-    $10,
-    $11)
-RETURNING
-id",
+        "INSERT INTO price ( type, uom, currency, amount, \"start\", \"end\", style_id, list_id, external_id, organization_id, created_by) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id",
     ))
 }
 pub struct InsertPriceStmt(crate::client::async_::Stmt);
 impl InsertPriceStmt {
     pub fn bind<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::StringSql,
         T2: crate::StringSql,
         T3: crate::StringSql,
     >(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         r#type: &'a crate::types::Pricetype,
         uom: &'a Option<T1>,
         currency: &'a T2,
@@ -436,7 +386,7 @@ impl InsertPriceStmt {
         external_id: &'a Option<T3>,
         organization_id: &'a i32,
         created_by: &'a i32,
-    ) -> I32Query<'a, C, i32, 11> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 11> {
         I32Query {
             client,
             params: [
@@ -458,15 +408,29 @@ impl InsertPriceStmt {
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql, T3: crate::StringSql>
-    crate::client::async_::Params<'a, InsertPriceParams<T1, T2, T3>, I32Query<'a, C, i32, 11>, C>
-    for InsertPriceStmt
+impl<
+        'c,
+        'a,
+        's,
+        C: GenericClient,
+        T1: crate::StringSql,
+        T2: crate::StringSql,
+        T3: crate::StringSql,
+    >
+    crate::client::async_::Params<
+        'c,
+        'a,
+        's,
+        InsertPriceParams<T1, T2, T3>,
+        I32Query<'c, 'a, 's, C, i32, 11>,
+        C,
+    > for InsertPriceStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a InsertPriceParams<T1, T2, T3>,
-    ) -> I32Query<'a, C, i32, 11> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 11> {
         self.bind(
             client,
             &params.r#type,
@@ -485,33 +449,22 @@ impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql, T3: crate
 }
 pub fn update_price() -> UpdatePriceStmt {
     UpdatePriceStmt(crate::client::async_::Stmt::new(
-        "UPDATE
-price
-SET
-    type = coalesce($1, type),
-    uom = coalesce($2, uom),
-    currency = coalesce($3, currency),
-    amount = coalesce($4, amount),
-    \"start\" = coalesce($5, \"start\"),
-    \"end\" = coalesce($6, \"end\"),
-    style_id = coalesce($7, style_id),
-    list_id = coalesce($8, list_id),
-    external_id = coalesce($9, external_id)
-WHERE
-    id = $10",
+        "UPDATE price SET type = coalesce($1, type), uom = coalesce($2, uom), currency = coalesce($3, currency), amount = coalesce($4, amount), \"start\" = coalesce($5, \"start\"), \"end\" = coalesce($6, \"end\"), style_id = coalesce($7, style_id), list_id = coalesce($8, list_id), external_id = coalesce($9, external_id) WHERE id = $10",
     ))
 }
 pub struct UpdatePriceStmt(crate::client::async_::Stmt);
 impl UpdatePriceStmt {
     pub async fn bind<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::StringSql,
         T2: crate::StringSql,
         T3: crate::StringSql,
     >(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         r#type: &'a Option<crate::types::Pricetype>,
         uom: &'a Option<T1>,
         currency: &'a Option<T2>,
@@ -552,6 +505,8 @@ impl<
     >
     crate::client::async_::Params<
         'a,
+        'a,
+        'a,
         UpdatePriceParams<T1, T2, T3>,
         std::pin::Pin<
             Box<dyn futures::Future<Output = Result<u64, tokio_postgres::Error>> + Send + 'a>,
@@ -583,16 +538,14 @@ impl<
 }
 pub fn delete_price() -> DeletePriceStmt {
     DeletePriceStmt(crate::client::async_::Stmt::new(
-        "DELETE FROM price
-WHERE organization_id = $1
-      AND id = $2",
+        "DELETE FROM price WHERE organization_id = $1 AND id = $2",
     ))
 }
 pub struct DeletePriceStmt(crate::client::async_::Stmt);
 impl DeletePriceStmt {
-    pub async fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub async fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a i32,
     ) -> Result<u64, tokio_postgres::Error> {
@@ -602,6 +555,8 @@ impl DeletePriceStmt {
 }
 impl<'a, C: GenericClient + Send + Sync>
     crate::client::async_::Params<
+        'a,
+        'a,
         'a,
         DeletePriceParams,
         std::pin::Pin<

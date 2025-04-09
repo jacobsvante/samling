@@ -141,18 +141,18 @@ impl<'a> From<SizeRowBorrowed<'a>> for SizeRow {
 }
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
-pub struct SizeRowQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct SizeRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> SizeRowBorrowed,
     mapper: fn(SizeRowBorrowed) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> SizeRowQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> SizeRowQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(SizeRowBorrowed) -> R) -> SizeRowQuery<'a, C, R, N> {
+    pub fn map<R>(self, mapper: fn(SizeRowBorrowed) -> R) -> SizeRowQuery<'c, 'a, 's, C, R, N> {
         SizeRowQuery {
             client: self.client,
             params: self.params,
@@ -180,7 +180,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -193,18 +193,18 @@ where
         Ok(it)
     }
 }
-pub struct I32Query<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> i32,
     mapper: fn(i32) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> I32Query<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'a, C, R, N> {
+    pub fn map<R>(self, mapper: fn(i32) -> R) -> I32Query<'c, 'a, 's, C, R, N> {
         I32Query {
             client: self.client,
             params: self.params,
@@ -232,7 +232,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -247,50 +247,16 @@ where
 }
 pub fn list_sizes() -> ListSizesStmt {
     ListSizesStmt(crate::client::async_::Stmt::new(
-        "SELECT
-    size.*,
-    jsonb_build_object(
-        'id',
-        color.id,
-        'style',
-        jsonb_build_object(
-            'id',
-            style.id,
-            'number',
-            style.number,
-            'name',
-            style.name,
-            'slug',
-            style.slug,
-            'external_id',
-            style.external_id
-        ),
-        'number',
-        color.number,
-        'name',
-        color.name,
-        'slug',
-        color.slug,
-        'external_id',
-        color.external_id
-    ) AS \"color\"
-FROM
-    size
-INNER JOIN color ON size.color_id = color.id
-INNER JOIN style ON color.style_id = style.id
-WHERE
-    size.organization_id = $1
-ORDER BY
-    size.id",
+        "SELECT size.*, jsonb_build_object( 'id', color.id, 'style', jsonb_build_object( 'id', style.id, 'number', style.number, 'name', style.name, 'slug', style.slug, 'external_id', style.external_id ), 'number', color.number, 'name', color.name, 'slug', color.slug, 'external_id', color.external_id ) AS \"color\" FROM size INNER JOIN color ON size.color_id = color.id INNER JOIN style ON color.style_id = style.id WHERE size.organization_id = $1 ORDER BY size.id",
     ))
 }
 pub struct ListSizesStmt(crate::client::async_::Stmt);
 impl ListSizesStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
-    ) -> SizeRowQuery<'a, C, SizeRow, 1> {
+    ) -> SizeRowQuery<'c, 'a, 's, C, SizeRow, 1> {
         SizeRowQuery {
             client,
             params: [organization_id],
@@ -313,34 +279,25 @@ impl ListSizesStmt {
                 position: row.get(14),
                 color: row.get(15),
             },
-            mapper: |it| <SizeRow>::from(it),
+            mapper: |it| SizeRow::from(it),
         }
     }
 }
 pub fn get_size_id() -> GetSizeIdStmt {
     GetSizeIdStmt(crate::client::async_::Stmt::new(
-        "SELECT size.id
-FROM
-    size
-WHERE
-    size.organization_id = $1
-    AND (
-        size.id = coalesce($2, -1)
-        OR size.external_id = coalesce($3, '___NON_EXISTING___')
-        OR size.slug = coalesce($4, '___NON_EXISTING___')
-    )",
+        "SELECT size.id FROM size WHERE size.organization_id = $1 AND ( size.id = coalesce($2, -1) OR size.external_id = coalesce($3, '___NON_EXISTING___') OR size.slug = coalesce($4, '___NON_EXISTING___') )",
     ))
 }
 pub struct GetSizeIdStmt(crate::client::async_::Stmt);
 impl GetSizeIdStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a Option<i32>,
         external_id: &'a Option<T1>,
         slug: &'a Option<T2>,
-    ) -> I32Query<'a, C, i32, 4> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 4> {
         I32Query {
             client,
             params: [organization_id, id, external_id, slug],
@@ -350,15 +307,21 @@ impl GetSizeIdStmt {
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
-    crate::client::async_::Params<'a, GetSizeIdParams<T1, T2>, I32Query<'a, C, i32, 4>, C>
-    for GetSizeIdStmt
+impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
+    crate::client::async_::Params<
+        'c,
+        'a,
+        's,
+        GetSizeIdParams<T1, T2>,
+        I32Query<'c, 'a, 's, C, i32, 4>,
+        C,
+    > for GetSizeIdStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a GetSizeIdParams<T1, T2>,
-    ) -> I32Query<'a, C, i32, 4> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 4> {
         self.bind(
             client,
             &params.organization_id,
@@ -370,56 +333,19 @@ impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
 }
 pub fn get_size() -> GetSizeStmt {
     GetSizeStmt(crate::client::async_::Stmt::new(
-        "SELECT
-    size.*,
-    jsonb_build_object(
-        'id',
-        color.id,
-        'style',
-        jsonb_build_object(
-            'id',
-            style.id,
-            'number',
-            style.number,
-            'name',
-            style.name,
-            'slug',
-            style.slug,
-            'external_id',
-            style.external_id
-        ),
-        'number',
-        color.number,
-        'name',
-        color.name,
-        'slug',
-        color.slug,
-        'external_id',
-        color.external_id
-    ) AS \"color\"
-FROM
-    size
-INNER JOIN color ON size.color_id = color.id
-INNER JOIN style ON color.style_id = style.id
-WHERE
-    size.organization_id = $1
-    AND (
-        size.id = coalesce($2, -1)
-        OR size.external_id = coalesce($3, '___NON_EXISTING___')
-        OR size.slug = coalesce($4, '___NON_EXISTING___')
-    )",
+        "SELECT size.*, jsonb_build_object( 'id', color.id, 'style', jsonb_build_object( 'id', style.id, 'number', style.number, 'name', style.name, 'slug', style.slug, 'external_id', style.external_id ), 'number', color.number, 'name', color.name, 'slug', color.slug, 'external_id', color.external_id ) AS \"color\" FROM size INNER JOIN color ON size.color_id = color.id INNER JOIN style ON color.style_id = style.id WHERE size.organization_id = $1 AND ( size.id = coalesce($2, -1) OR size.external_id = coalesce($3, '___NON_EXISTING___') OR size.slug = coalesce($4, '___NON_EXISTING___') )",
     ))
 }
 pub struct GetSizeStmt(crate::client::async_::Stmt);
 impl GetSizeStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-        &'a mut self,
-        client: &'a C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a Option<i32>,
         external_id: &'a Option<T1>,
         slug: &'a Option<T2>,
-    ) -> SizeRowQuery<'a, C, SizeRow, 4> {
+    ) -> SizeRowQuery<'c, 'a, 's, C, SizeRow, 4> {
         SizeRowQuery {
             client,
             params: [organization_id, id, external_id, slug],
@@ -442,19 +368,25 @@ impl GetSizeStmt {
                 position: row.get(14),
                 color: row.get(15),
             },
-            mapper: |it| <SizeRow>::from(it),
+            mapper: |it| SizeRow::from(it),
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
-    crate::client::async_::Params<'a, GetSizeParams<T1, T2>, SizeRowQuery<'a, C, SizeRow, 4>, C>
-    for GetSizeStmt
+impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
+    crate::client::async_::Params<
+        'c,
+        'a,
+        's,
+        GetSizeParams<T1, T2>,
+        SizeRowQuery<'c, 'a, 's, C, SizeRow, 4>,
+        C,
+    > for GetSizeStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a GetSizeParams<T1, T2>,
-    ) -> SizeRowQuery<'a, C, SizeRow, 4> {
+    ) -> SizeRowQuery<'c, 'a, 's, C, SizeRow, 4> {
         self.bind(
             client,
             &params.organization_id,
@@ -466,38 +398,15 @@ impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
 }
 pub fn insert_size() -> InsertSizeStmt {
     InsertSizeStmt(crate::client::async_::Stmt::new(
-        "INSERT INTO size (
-    color_id,
-    slug,
-    external_id,
-    number,
-    name,
-    service_item,
-    delivery_period,
-    ean_code,
-    status,
-    organization_id,
-    created_by)
-VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5,
-    $6,
-    $7,
-    $8,
-    $9,
-    $10,
-    $11)
-RETURNING
-id",
+        "INSERT INTO size ( color_id, slug, external_id, number, name, service_item, delivery_period, ean_code, status, organization_id, created_by) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id",
     ))
 }
 pub struct InsertSizeStmt(crate::client::async_::Stmt);
 impl InsertSizeStmt {
     pub fn bind<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::StringSql,
         T2: crate::StringSql,
@@ -506,8 +415,8 @@ impl InsertSizeStmt {
         T5: crate::StringSql,
         T6: crate::StringSql,
     >(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         color_id: &'a i32,
         slug: &'a T1,
         external_id: &'a Option<T2>,
@@ -519,7 +428,7 @@ impl InsertSizeStmt {
         status: &'a Option<T6>,
         organization_id: &'a i32,
         created_by: &'a i32,
-    ) -> I32Query<'a, C, i32, 11> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 11> {
         I32Query {
             client,
             params: [
@@ -542,7 +451,9 @@ impl InsertSizeStmt {
     }
 }
 impl<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::StringSql,
         T2: crate::StringSql,
@@ -552,17 +463,19 @@ impl<
         T6: crate::StringSql,
     >
     crate::client::async_::Params<
+        'c,
         'a,
+        's,
         InsertSizeParams<T1, T2, T3, T4, T5, T6>,
-        I32Query<'a, C, i32, 11>,
+        I32Query<'c, 'a, 's, C, i32, 11>,
         C,
     > for InsertSizeStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         params: &'a InsertSizeParams<T1, T2, T3, T4, T5, T6>,
-    ) -> I32Query<'a, C, i32, 11> {
+    ) -> I32Query<'c, 'a, 's, C, i32, 11> {
         self.bind(
             client,
             &params.color_id,
@@ -581,27 +494,15 @@ impl<
 }
 pub fn update_size() -> UpdateSizeStmt {
     UpdateSizeStmt(crate::client::async_::Stmt::new(
-        "UPDATE
-size
-SET
-    color_id = coalesce($1, color_id),
-    slug = coalesce($2, slug),
-    external_id = coalesce($3, external_id),
-    number = coalesce($4, number),
-    position = coalesce($5, position),
-    name = coalesce($6, name),
-    service_item = coalesce($7, service_item),
-    delivery_period = coalesce($8, delivery_period),
-    ean_code = coalesce($9, ean_code),
-    status = coalesce($10, status)
-WHERE
-    id = $11",
+        "UPDATE size SET color_id = coalesce($1, color_id), slug = coalesce($2, slug), external_id = coalesce($3, external_id), number = coalesce($4, number), position = coalesce($5, position), name = coalesce($6, name), service_item = coalesce($7, service_item), delivery_period = coalesce($8, delivery_period), ean_code = coalesce($9, ean_code), status = coalesce($10, status) WHERE id = $11",
     ))
 }
 pub struct UpdateSizeStmt(crate::client::async_::Stmt);
 impl UpdateSizeStmt {
     pub async fn bind<
+        'c,
         'a,
+        's,
         C: GenericClient,
         T1: crate::StringSql,
         T2: crate::StringSql,
@@ -610,8 +511,8 @@ impl UpdateSizeStmt {
         T5: crate::StringSql,
         T6: crate::StringSql,
     >(
-        &'a mut self,
-        client: &'a C,
+        &'s mut self,
+        client: &'c C,
         color_id: &'a i32,
         slug: &'a Option<T1>,
         external_id: &'a Option<T2>,
@@ -657,6 +558,8 @@ impl<
     >
     crate::client::async_::Params<
         'a,
+        'a,
+        'a,
         UpdateSizeParams<T1, T2, T3, T4, T5, T6>,
         std::pin::Pin<
             Box<dyn futures::Future<Output = Result<u64, tokio_postgres::Error>> + Send + 'a>,
@@ -689,16 +592,14 @@ impl<
 }
 pub fn delete_size() -> DeleteSizeStmt {
     DeleteSizeStmt(crate::client::async_::Stmt::new(
-        "DELETE FROM size
-WHERE organization_id = $1
-      AND id = $2",
+        "DELETE FROM size WHERE organization_id = $1 AND id = $2",
     ))
 }
 pub struct DeleteSizeStmt(crate::client::async_::Stmt);
 impl DeleteSizeStmt {
-    pub async fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
+    pub async fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
         organization_id: &'a i32,
         id: &'a i32,
     ) -> Result<u64, tokio_postgres::Error> {
@@ -708,6 +609,8 @@ impl DeleteSizeStmt {
 }
 impl<'a, C: GenericClient + Send + Sync>
     crate::client::async_::Params<
+        'a,
+        'a,
         'a,
         DeleteSizeParams,
         std::pin::Pin<
