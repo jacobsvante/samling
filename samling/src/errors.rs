@@ -258,7 +258,7 @@ pub enum CliError {
     SerdeJsonError(#[from] serde_json::Error),
     #[error(transparent)]
     ReqwestError(#[from] reqwest::Error),
-    #[error(transparent)]
+    #[error("dotenv: {0}")]
     DotenvError(#[from] dotenvy::Error),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
