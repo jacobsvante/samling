@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.2](https://github.com/jacobsvante/samling/compare/samling-v0.13.1...samling-v0.13.2) - 2025-04-09
+
+### Fixed
+
+- update deps
+- Update deps
+- update deps
+
 ## [0.13.1](https://github.com/hyperkliv/samling/compare/samling-v0.13.0...samling-v0.13.1) - 2025-01-08
 
 ### Fixed
