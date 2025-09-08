@@ -91,7 +91,7 @@ tower-http = { version = "0.6.2", default-features = false, features = [
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", optional = true }
 url = { version = "2.5.4", features = ["serde"] }
-chrono = { version = "0.4.40", features = ["serde"] }
+chrono = { version = "0.4.42", features = ["serde"] }
 
 [features]
 default = ["cli"]
