@@ -7,7 +7,7 @@ use governor::{
     Quota, RateLimiter,
 };
 use once_cell::sync::OnceCell;
-use rand::{distr::Alphanumeric, Rng};
+use rand::{distr::Alphanumeric, RngExt};
 use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION},
     multipart::{self},
