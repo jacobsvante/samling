@@ -82,7 +82,7 @@ impl<'a> ExpandedRow<'a> {
     }
 }
 
-pub(super) fn expand(style: &NestedStyle) -> Vec<ExpandedRow> {
+pub(super) fn expand(style: &NestedStyle) -> Vec<ExpandedRow<'_>> {
     let base = ExpandedRow::new(style);
     let expanded = expand_colors(base, &style.colors);
 

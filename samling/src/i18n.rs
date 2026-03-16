@@ -99,7 +99,7 @@ impl I18nString {
         for value in values {
             for language in Language::iter() {
                 let found = value.get(language);
-                if out.get(language) == "" && !found.is_empty() {
+                if out.get(language).is_empty() && !found.is_empty() {
                     out.set(language, found.to_owned());
                 }
             }
