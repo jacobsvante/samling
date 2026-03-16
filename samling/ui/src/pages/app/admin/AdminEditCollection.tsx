@@ -52,6 +52,7 @@ import {
   makeEditableStyle,
 } from "../../../types/admin";
 import { sortBy } from "lodash";
+import ExcelCollectionImport, { ExcelImportStats } from "../../../components/admin/ExcelCollectionImport";
 
 export default function AdminEditCollection() {
   const { token, activeOrganization } = useAppSelector((state) => state.user);
@@ -74,8 +75,8 @@ export default function AdminEditCollection() {
     Err: (error) => <ApiError error={error} />,
     Ok: () =>
       collection === null ||
-      allPriceLists === null ||
-      fullNestedStyles == null ? (
+        allPriceLists === null ||
+        fullNestedStyles == null ? (
         <Loading />
       ) : (
         <>
@@ -128,16 +129,17 @@ function CollectionEditForm({
   const dispatch = useAppDispatch();
 
   const [submitting, setSubmitting] = useState(false);
+  const [importStats, setImportStats] = useState<ExcelImportStats | null>(null);
   const [name, setName] = useState(collection.name);
   const [pricingItems, setPricingItems] = useState(() => {
     // NOTE: This is very important. We make sure that the pricingItem contains the
     //       exact same PriceListSummary object.
     return collection.pricing.map(
       (pricingItem) =>
-        ({
-          date: pricingItem.date,
-          list: allPriceLists.find((pl) => pl.id === pricingItem.list.id),
-        } as CollectionPricing),
+      ({
+        date: pricingItem.date,
+        list: allPriceLists.find((pl) => pl.id === pricingItem.list.id),
+      } as CollectionPricing),
     );
   });
   const [slug, setSlug] = useState(collection.slug);
@@ -185,6 +187,7 @@ function CollectionEditForm({
               }),
             );
             setNewImage(null); // To ensure that new image is not uploaded again
+            setImportStats(null);
             onSuccess();
           },
           Err: (error) => {
@@ -200,21 +203,25 @@ function CollectionEditForm({
   function submitForm() {
     setSubmitting(true);
     const bufferPromise = newImage?.arrayBuffer();
-    const sizes = editableStyles.flatMap((style) =>
-      style.colors.flatMap((color) =>
-        color.sizes
-          .filter((size) => size.enabled)
-          .map((size) => ({
-            id: size.id,
-          })),
+    const activeStyles = editableStyles.filter((s) => !s.removed);
+    const activeSizes = (color: typeof activeStyles[0]["colors"][0]) =>
+      color.sizes.filter((size) => size.enabled && !size.removed);
+    const activeColors = (style: typeof activeStyles[0]) =>
+      style.colors.filter((c) => !c.removed && activeSizes(c).length > 0);
+
+    const sizes = activeStyles.flatMap((style) =>
+      activeColors(style).flatMap((color) =>
+        activeSizes(color).map((size) => ({ id: size.id })),
       ),
     );
 
-    const newStyles = editableStyles.flatMap((style) =>
-      style.isNew ? [{ id: style.id }] : [],
-    );
-    const newColors = editableStyles.flatMap((style) =>
-      style.colors.flatMap((color) => (color.isNew ? [{ id: color.id }] : [])),
+    const newStyles = activeStyles
+      .filter((style) => style.isNew && activeColors(style).length > 0)
+      .map((style) => ({ id: style.id }));
+    const newColors = activeStyles.flatMap((style) =>
+      activeColors(style)
+        .filter((color) => color.isNew)
+        .map((color) => ({ id: color.id })),
     );
     const updateCollection: UpdateCollection = {
       name,
@@ -283,9 +290,9 @@ function CollectionEditForm({
                 existing={
                   collection.image_url
                     ? {
-                        src: cloudflareImageUrl(collection.image_url, "medium"),
-                        alt: i18nDbText(collection.name),
-                      }
+                      src: cloudflareImageUrl(collection.image_url, "medium"),
+                      alt: i18nDbText(collection.name),
+                    }
                     : null
                 }
                 label={t`Cover photo`}
@@ -308,6 +315,8 @@ function CollectionEditForm({
                 allNestedStylesMap={nestedStylesMap}
                 editableStyles={editableStyles}
                 setEditableStyles={setEditableStyles}
+                importStats={importStats}
+                setImportStats={setImportStats}
               />
             </div>
           </div>
@@ -500,10 +509,14 @@ function CollectionItemsEditor({
   allNestedStylesMap,
   editableStyles,
   setEditableStyles,
+  importStats,
+  setImportStats,
 }: {
   allNestedStylesMap: Map<number, NestedStyleSummary>;
   editableStyles: EditableStyle[];
   setEditableStyles: Dispatch<SetStateAction<EditableStyle[]>>;
+  importStats: ExcelImportStats | null;
+  setImportStats: Dispatch<SetStateAction<ExcelImportStats | null>>;
 }) {
   const checkbox = useRef<HTMLInputElement>(null);
   const [checked, setChecked] = useState(false);
@@ -517,12 +530,12 @@ function CollectionItemsEditor({
       ...editableStyles.map((otherStyle) =>
         styles.includes(otherStyle)
           ? {
-              ...otherStyle,
-              colors: otherStyle.colors.map((color) => ({
-                ...color,
-                sizes: color.sizes.map((size) => ({ ...size, enabled })),
-              })),
-            }
+            ...otherStyle,
+            colors: otherStyle.colors.map((color) => ({
+              ...color,
+              sizes: color.sizes.map((size) => ({ ...size, enabled })),
+            })),
+          }
           : otherStyle,
       ),
     ]);
@@ -533,9 +546,9 @@ function CollectionItemsEditor({
       editableStyles.map((otherStyle) =>
         otherStyle.id === style.id
           ? {
-              ...style,
-              isNew,
-            }
+            ...style,
+            isNew,
+          }
           : otherStyle,
       ),
     );
@@ -548,9 +561,9 @@ function CollectionItemsEditor({
         colors: style.colors.map((otherColor) =>
           otherColor.id === color.id
             ? {
-                ...color,
-                sizes: color.sizes.map((size) => ({ ...size, enabled })),
-              }
+              ...color,
+              sizes: color.sizes.map((size) => ({ ...size, enabled })),
+            }
             : otherColor,
         ),
       })),
@@ -620,7 +633,7 @@ function CollectionItemsEditor({
             </Trans>
           </p>
         </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none flex space-x-3">
           <button
             type="button"
             className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
@@ -628,8 +641,15 @@ function CollectionItemsEditor({
           >
             <Trans>Add items</Trans>
           </button>
+          <ExcelCollectionImport
+            editableStyles={editableStyles}
+            setEditableStyles={setEditableStyles}
+            allNestedStylesMap={allNestedStylesMap}
+            onStatsChanged={(stats) => setImportStats(stats)}
+          />
         </div>
       </div>
+      {importStats && <ImportStatsLine stats={importStats} />}
       <div className="mt-8 flex flex-col">
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
@@ -739,6 +759,38 @@ function CollectionItemsEditor({
   );
 }
 
+function ImportStatsLine({ stats }: { stats: ExcelImportStats }) {
+  const parts: string[] = [];
+  if (stats.stylesAdded > 0) {
+    let s = t`${stats.stylesAdded} styles will be added`;
+    if (stats.stylesAddedNew > 0) s += ` (${stats.stylesAddedNew} ${t`new`})`;
+    parts.push(s);
+  }
+  if (stats.stylesRemoved > 0) {
+    parts.push(t`${stats.stylesRemoved} styles will be removed`);
+  }
+  if (stats.colorsAdded > 0) {
+    let s = t`${stats.colorsAdded} colors will be added`;
+    if (stats.colorsAddedNew > 0) s += ` (${stats.colorsAddedNew} ${t`new`})`;
+    parts.push(s);
+  }
+  if (stats.colorsRemoved > 0) {
+    parts.push(t`${stats.colorsRemoved} colors will be removed`);
+  }
+  if (stats.sizesAdded > 0) {
+    parts.push(t`${stats.sizesAdded} sizes will be added`);
+  }
+  if (stats.sizesRemoved > 0) {
+    parts.push(t`${stats.sizesRemoved} sizes will be removed`);
+  }
+  if (parts.length === 0) return null;
+  return (
+    <div className="mt-4 rounded-md bg-indigo-50 px-4 py-3">
+      <p className="text-sm text-indigo-700">{parts.join(", ")}</p>
+    </div>
+  );
+}
+
 function EditableCollectionItemRow({
   style,
   selected,
@@ -758,7 +810,15 @@ function EditableCollectionItemRow({
 }) {
   const { i18nDbText } = useLocalize();
   return (
-    <tr key={style.id} className={selected ? "bg-gray-50" : undefined}>
+    <tr
+      key={style.id}
+      className={classNames(
+        ...[
+          selected ? "bg-gray-50" : "",
+          style.removed ? "opacity-40 line-through" : "",
+        ],
+      )}
+    >
       <td className="relative w-12 px-6 sm:w-16 sm:px-8">
         {selected && (
           <div className="absolute inset-y-0 left-0 w-0.5 bg-indigo-600" />
@@ -768,6 +828,7 @@ function EditableCollectionItemRow({
           className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 sm:left-6"
           value={style.id}
           checked={selected}
+          disabled={style.removed}
           onChange={(e) => onSelectChange(e.target.checked)}
         />
       </td>
@@ -784,14 +845,16 @@ function EditableCollectionItemRow({
             </div>
             <div className="text-gray-500">{style.number}</div>
           </div>
-          <div className="mx-4">
-            <NewIconSelectBox
-              checked={style.isNew}
-              onChange={(evt) => setStyleIsNew(style, evt.target.checked)}
-            />
-            <span className="mx-1" />
-            {t`New`}
-          </div>
+          {!style.removed && (
+            <div className="mx-4">
+              <NewIconSelectBox
+                checked={style.isNew}
+                onChange={(evt) => setStyleIsNew(style, evt.target.checked)}
+              />
+              <span className="mx-1" />
+              {t`New`}
+            </div>
+          )}
         </div>
       </td>
       <td className="whitespace-nowrap py-2 text-sm text-gray-500">
@@ -823,7 +886,7 @@ function ColorCell({
   const { i18nDbText } = useLocalize();
   const anyEnabled = color.sizes.find((size) => size.enabled) !== undefined;
   return (
-    <div key={color.id}>
+    <div key={color.id} className={color.removed ? "opacity-40 line-through" : ""}>
       <div className="mx-4 flex items-center">
         <div className="h-12 w-12 inline-block">
           {color.primaryImage ? (
@@ -843,33 +906,39 @@ function ColorCell({
         <div className="inline-block text-gray-500 mx-2">{color.number}</div>
         <div className="inline-block text-gray-500 mx-2">
           {color.sizes.map((size) => (
-            <span className="mx-2" key={size.id}>
+            <span
+              className={classNames("mx-2", size.removed ? "opacity-40 line-through" : "")}
+              key={size.id}
+            >
               <input
                 type="checkbox"
                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 checked={size.enabled}
+                disabled={size.removed}
                 onChange={(e) => setSizeEnabled(size, e.target.checked)}
               />{" "}
               {size.number}
             </span>
           ))}
         </div>
-        <div className="inline-block text-gray-500 mx-2">
-          <button
-            type="button"
-            className="text-indigo-600 hover:text-indigo-900 text-xs"
-            onClick={(evt) => {
-              evt.stopPropagation();
-              evt.preventDefault();
-              setColorEnabled(color, !anyEnabled);
-            }}
-          >
-            {anyEnabled ? t`Disable all` : t`Enable all`}
-            <span className="sr-only">, {i18nDbText(color.name)}</span>
-          </button>
-        </div>
+        {!color.removed && (
+          <div className="inline-block text-gray-500 mx-2">
+            <button
+              type="button"
+              className="text-indigo-600 hover:text-indigo-900 text-xs"
+              onClick={(evt) => {
+                evt.stopPropagation();
+                evt.preventDefault();
+                setColorEnabled(color, !anyEnabled);
+              }}
+            >
+              {anyEnabled ? t`Disable all` : t`Enable all`}
+              <span className="sr-only">, {i18nDbText(color.name)}</span>
+            </button>
+          </div>
+        )}
         <div className="inline-block text-gray-500 mx-2 text-sm">
-          {anyEnabled && (
+          {anyEnabled && !color.removed && (
             <>
               <NewIconSelectBox
                 checked={color.isNew}

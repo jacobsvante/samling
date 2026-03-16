@@ -392,7 +392,9 @@ INNER JOIN (
                         'number',
                         size.number,
                         'name',
-                        size.name
+                        size.name,
+                        'external_id',
+                        size.external_id
                     )
                     ORDER BY
                         size.number

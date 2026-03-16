@@ -56,7 +56,7 @@ pub struct OrganizationRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize>
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> OrganizationRowBorrowed,
+    extractor: fn(&tokio_postgres::Row) -> Result<OrganizationRowBorrowed, tokio_postgres::Error>,
     mapper: fn(OrganizationRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> OrganizationRowQuery<'c, 'a, 's, C, T, N>
@@ -78,7 +78,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -89,7 +89,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -102,7 +106,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -111,7 +120,7 @@ pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> i32,
+    extractor: fn(&tokio_postgres::Row) -> Result<i32, tokio_postgres::Error>,
     mapper: fn(i32) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
@@ -130,7 +139,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -141,7 +150,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -154,7 +167,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -175,13 +193,17 @@ impl GetOrganizationStmt {
             client,
             params: [id],
             stmt: &mut self.0,
-            extractor: |row| OrganizationRowBorrowed {
-                id: row.get(0),
-                name: row.get(1),
-                created_by: row.get(2),
-                created_at: row.get(3),
-                updated_at: row.get(4),
-                logo_url: row.get(5),
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<OrganizationRowBorrowed, tokio_postgres::Error> {
+                Ok(OrganizationRowBorrowed {
+                    id: row.try_get(0)?,
+                    name: row.try_get(1)?,
+                    created_by: row.try_get(2)?,
+                    created_at: row.try_get(3)?,
+                    updated_at: row.try_get(4)?,
+                    logo_url: row.try_get(5)?,
+                })
             },
             mapper: |it| OrganizationRow::from(it),
         }
@@ -203,7 +225,7 @@ impl GetOrganizationIdStmt {
             client,
             params: [id],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -226,13 +248,17 @@ impl InsertOrganizationStmt {
             client,
             params: [name, logo_url, created_by],
             stmt: &mut self.0,
-            extractor: |row| OrganizationRowBorrowed {
-                id: row.get(0),
-                name: row.get(1),
-                created_by: row.get(2),
-                created_at: row.get(3),
-                updated_at: row.get(4),
-                logo_url: row.get(5),
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<OrganizationRowBorrowed, tokio_postgres::Error> {
+                Ok(OrganizationRowBorrowed {
+                    id: row.try_get(0)?,
+                    name: row.try_get(1)?,
+                    created_by: row.try_get(2)?,
+                    created_at: row.try_get(3)?,
+                    updated_at: row.try_get(4)?,
+                    logo_url: row.try_get(5)?,
+                })
             },
             mapper: |it| OrganizationRow::from(it),
         }
@@ -274,13 +300,17 @@ impl UpdateOrganizationStmt {
             client,
             params: [name, logo_url, id],
             stmt: &mut self.0,
-            extractor: |row| OrganizationRowBorrowed {
-                id: row.get(0),
-                name: row.get(1),
-                created_by: row.get(2),
-                created_at: row.get(3),
-                updated_at: row.get(4),
-                logo_url: row.get(5),
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<OrganizationRowBorrowed, tokio_postgres::Error> {
+                Ok(OrganizationRowBorrowed {
+                    id: row.try_get(0)?,
+                    name: row.try_get(1)?,
+                    created_by: row.try_get(2)?,
+                    created_at: row.try_get(3)?,
+                    updated_at: row.try_get(4)?,
+                    logo_url: row.try_get(5)?,
+                })
             },
             mapper: |it| OrganizationRow::from(it),
         }
@@ -320,7 +350,7 @@ impl DeleteOrganizationStmt {
             client,
             params: [id],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -341,13 +371,17 @@ impl ListUserOrganizationsStmt {
             client,
             params: [user_id],
             stmt: &mut self.0,
-            extractor: |row| OrganizationRowBorrowed {
-                id: row.get(0),
-                name: row.get(1),
-                created_by: row.get(2),
-                created_at: row.get(3),
-                updated_at: row.get(4),
-                logo_url: row.get(5),
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<OrganizationRowBorrowed, tokio_postgres::Error> {
+                Ok(OrganizationRowBorrowed {
+                    id: row.try_get(0)?,
+                    name: row.try_get(1)?,
+                    created_by: row.try_get(2)?,
+                    created_at: row.try_get(3)?,
+                    updated_at: row.try_get(4)?,
+                    logo_url: row.try_get(5)?,
+                })
             },
             mapper: |it| OrganizationRow::from(it),
         }
