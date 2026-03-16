@@ -138,6 +138,7 @@ enum Subcommand {
         token_ttl: u32,
     },
     /// Generate JSON Schema and Typescript files for structs and enums in the project
+    /// Required quicktype to generate Typescript (npm install -g quicktype)
     GenerateTypes,
 }
 
@@ -440,14 +441,14 @@ pub async fn run() -> CliResult<()> {
                 return Err(CliError::NotInProjectRoot);
             }
             let schema_target_path = dir.join("schema.json");
-            let types_target_path = dir.join("ui/src/types/api.ts");
+            let types_target_path = dir.join("samling/ui/src/types/api.ts");
             // First ensure that schema.json is up-to-date
             tracing::info!("Creating JSON schema...");
             generate_schema_file(&schema_target_path).await?;
             // Now we convert it to typescript
             // using [quicktype](https://github.com/quicktype/quicktype).
             tracing::info!("Converting schema.json to typescript...");
-            let output = Command::new("quicktype")
+            let status = Command::new("quicktype")
                 .args([
                     "--converters=all-objects",
                     "--raw-type=any",
@@ -459,10 +460,13 @@ pub async fn run() -> CliResult<()> {
                     "--out",
                     &types_target_path.to_string_lossy(),
                 ])
-                .output()?;
-            tracing::info!("Done!");
-            println!("{}", String::from_utf8_lossy(&output.stdout));
-            Ok(())
+                .status()?;
+            if status.success() {
+                tracing::info!("Done!");
+                Ok(())
+            } else {
+                Err(CliError::GenerateTypescriptFailure)
+            }
         }
         Subcommand::Api {
             token,

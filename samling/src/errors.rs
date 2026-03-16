@@ -270,4 +270,6 @@ pub enum CliError {
     DbPoolError(#[from] deadpool_postgres::PoolError),
     #[error("Must be in project root to run this command")]
     NotInProjectRoot,
+    #[error("Generate typescript failure")]
+    GenerateTypescriptFailure,
 }
