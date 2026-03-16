@@ -46,13 +46,13 @@ rust_decimal = { version = "1.40.0", features = [
     "serde-with-float",
 ] }
 rust_xlsxwriter = "0.94.0"
-schemars = { version = "0.8.22", features = [
+schemars = { version = "1.2.1", features = [
     "derive",
     "preserve_order",
-    "bytes",
-    "url",
-    "rust_decimal",
-    "chrono",
+    "bytes1",
+    "url2",
+    "rust_decimal1",
+    "chrono04",
 ] }
 sentry = { version = "0.47.0", default-features = false, features = [
     "rustls",

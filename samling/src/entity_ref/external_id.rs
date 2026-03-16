@@ -2,11 +2,7 @@ use std::{fmt::Debug, hash::Hash, marker::PhantomData, ops::Deref};
 
 use samling_clorinde::client::GenericClient;
 
-use schemars::{
-    gen::SchemaGenerator,
-    schema::{InstanceType, Schema, SchemaObject},
-    JsonSchema,
-};
+use schemars::{json_schema, JsonSchema, Schema};
 use serde::{Deserialize, Serialize};
 
 use super::{Id, Ref, RefTarget, RefType};
@@ -143,16 +139,14 @@ pub trait ExternalIdEntity: core::fmt::Debug + Send + Sync {
 }
 
 impl<T: RefTarget> JsonSchema for ExternalId<T> {
-    fn schema_name() -> String {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
         "ExternalId".into()
     }
 
-    fn json_schema(_: &mut SchemaGenerator) -> Schema {
-        SchemaObject {
-            instance_type: Some(InstanceType::String.into()),
-            ..Default::default()
-        }
-        .into()
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "string"
+        })
     }
 }
 

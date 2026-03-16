@@ -1,11 +1,7 @@
 use std::{fmt::Debug, hash::Hash, marker::PhantomData, str::FromStr};
 
 use postgres_types::{private::BytesMut, to_sql_checked, IsNull, ToSql, Type};
-use schemars::{
-    gen::SchemaGenerator,
-    schema::{InstanceType, Schema, SchemaObject},
-    JsonSchema,
-};
+use schemars::{json_schema, JsonSchema, Schema};
 use serde::{Deserialize, Serialize};
 
 use super::{Ref, RefTarget, RefType};
@@ -146,15 +142,13 @@ impl<T: RefTarget> Ord for Id<T> {
 }
 
 impl<T: RefTarget> JsonSchema for Id<T> {
-    fn schema_name() -> String {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
         "Id".into()
     }
 
-    fn json_schema(_: &mut SchemaGenerator) -> Schema {
-        SchemaObject {
-            instance_type: Some(InstanceType::Number.into()),
-            ..Default::default()
-        }
-        .into()
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "number"
+        })
     }
 }

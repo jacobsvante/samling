@@ -10,39 +10,39 @@
 export interface Api {
     attribute:              Attribute;
     attribute_type:         AttributeType;
-    attribute_type_summary: AttributeTypeSummary;
-    auth:                   AuthJsonSchema;
+    attribute_type_summary: AttributeTypeSummaryObject;
+    auth:                   Auth;
     category:               Category;
     category_summary:       CategorySummary;
-    collection:             Collection;
-    collection_style_item:  CollectionItem;
-    collection_summary:     CollectionSummary;
+    collection:             ApiCollection;
+    collection_style_item:  CollectionStyleItem;
+    collection_summary:     CollectionSummaryElement;
     collection_with_items:  CollectionWithItems;
     color:                  Color;
     color_summary:          ColorSummary;
     create_collection:      CreateCollection;
     environment:            Environment;
-    errors:                 ErrorsSchema;
-    export:                 ExportSchema;
-    filters:                FiltersSchema;
-    i18n_string:            I18NString;
+    errors:                 Errors;
+    export:                 Export;
+    filters:                Filters;
+    i18n_string:            Description;
     image:                  Image;
-    image_summary:          ImageSummary;
+    image_summary:          ImageSummaryElement;
     language:               Language;
-    nested_attribute:       AttributeSummary;
-    nested_color:           NestedColor;
-    nested_price:           NestedPrice;
-    nested_size:            NestedSize;
-    nested_style:           NestedStyle;
+    nested_attribute:       NestedAttributeElement;
+    nested_color:           NestedColorElement;
+    nested_price:           NestedPriceElement;
+    nested_size:            NestedSizeElement;
+    nested_style:           NestedStyleObject;
     nested_style_summary:   NestedStyleSummary;
-    organization:           Organization;
+    organization:           ApiOrganization;
     price:                  Price;
     price_list:             PriceList;
-    price_list_summary:     PriceListSummary;
+    price_list_summary:     List;
     size:                   Size;
-    sort_by:                SortByJsonSchema;
-    style:                  Style;
-    style_summary:          StyleSummary;
+    sort_by:                SortBy;
+    style:                  PurpleStyle;
+    style_summary:          StyleSummaryObject;
     update_collection:      UpdateCollection;
     [property: string]: any;
 }
@@ -53,17 +53,17 @@ export interface Api {
 export interface Attribute {
     created_at:   string;
     created_by?:  number | null;
-    description:  I18NString;
+    description:  Description;
     external_id?: null | string;
     id:           number;
     slug:         string;
-    title:        I18NString;
-    type:         AttributeTypeSummary;
+    title:        Description;
+    type:         AttributeTypeSummaryObject;
     updated_at:   string;
     [property: string]: any;
 }
 
-export interface I18NString {
+export interface Description {
     de?: string;
     en?: string;
     sv?: string;
@@ -73,10 +73,10 @@ export interface I18NString {
 /**
  * Attribute type summary
  */
-export interface AttributeTypeSummary {
+export interface AttributeTypeSummaryObject {
     external_id?: null | string;
     id:           number;
-    name:         I18NString;
+    name:         Description;
     slug:         string;
     [property: string]: any;
 }
@@ -89,32 +89,32 @@ export interface AttributeType {
     created_by?:  number | null;
     external_id?: null | string;
     id:           number;
-    name:         I18NString;
+    name:         Description;
     slug:         string;
     updated_at:   string;
     [property: string]: any;
 }
 
-export interface AuthJsonSchema {
+export interface Auth {
     authenticated_user:    AuthenticatedUser;
     create_group:          CreateGroup;
     create_user:           CreateUser;
     google_credentials:    GoogleCredentials;
     group:                 Group;
-    group_summary:         GroupSummary;
+    group_summary:         GroupSummaryElement;
     microsoft_credentials: MicrosoftCredentials;
     update_group:          UpdateGroup;
     update_own_user:       UpdateOwnUser;
     update_user:           UpdateUser;
-    user:                  User;
-    user_summary:          UserSummary;
+    user:                  AuthenticatedUserUser;
+    user_summary:          UserSummaryElement;
     [property: string]: any;
 }
 
 export interface AuthenticatedUser {
     environment: Environment;
     token:       string;
-    user:        User;
+    user:        AuthenticatedUserUser;
     [property: string]: any;
 }
 
@@ -124,20 +124,20 @@ export enum Environment {
     Staging = "staging",
 }
 
-export interface User {
+export interface AuthenticatedUserUser {
     created_at:     string;
     email:          string;
-    groups:         GroupSummary[];
+    groups:         GroupSummaryElement[];
     id:             number;
-    last_sign_in:   string;
+    last_sign_in?:  null | string;
     name:           string;
-    organizations:  UserOrganization[];
+    organizations:  OrganizationElement[];
     profile_image?: null | string;
     updated_at:     string;
     [property: string]: any;
 }
 
-export interface GroupSummary {
+export interface GroupSummaryElement {
     description:     string;
     external_id?:    null | string;
     id:              number;
@@ -149,16 +149,16 @@ export interface GroupSummary {
     [property: string]: any;
 }
 
-export interface UserOrganization {
-    organization: OrganizationSummary;
-    roles:        Role[];
+export interface OrganizationElement {
+    organization: OrganizationOrganization;
+    roles:        RoleElement[];
     [property: string]: any;
 }
 
 /**
  * Organization
  */
-export interface OrganizationSummary {
+export interface OrganizationOrganization {
     id:        number;
     logo_url?: null | string;
     name:      string;
@@ -170,7 +170,7 @@ export interface OrganizationSummary {
  *
  * The u8 representation is meant for database storage/retrieval
  */
-export enum Role {
+export enum RoleElement {
     Active = "Active",
     Administrator = "Administrator",
     Editor = "Editor",
@@ -178,29 +178,29 @@ export enum Role {
 }
 
 export interface CreateGroup {
-    collections?: RefForCollection[];
+    collections?: CollectionClass[];
     description?: string;
     external_id?: null | string;
     name:         string;
-    price_lists?: RefForPriceList[];
+    price_lists?: PriceListElement[];
     slug?:        null | string;
-    users?:       RefForUser[];
+    users?:       UserClass[];
     [property: string]: any;
 }
 
-export interface RefForCollection {
+export interface CollectionClass {
     id?:          number;
     external_id?: string;
     slug?:        string;
 }
 
-export interface RefForPriceList {
+export interface PriceListElement {
     id?:          number;
     external_id?: string;
     slug?:        string;
 }
 
-export interface RefForUser {
+export interface UserClass {
     id?:          number;
     external_id?: string;
     slug?:        string;
@@ -208,15 +208,15 @@ export interface RefForUser {
 
 export interface CreateUser {
     email:          string;
-    groups?:        RefForGroup[] | null;
+    groups?:        GroupClass[] | null;
     name:           string;
     password?:      null | string;
     profile_image?: null | string;
-    roles?:         Role[] | null;
+    roles?:         RoleElement[] | null;
     [property: string]: any;
 }
 
-export interface RefForGroup {
+export interface GroupClass {
     id?:          number;
     external_id?: string;
     slug?:        string;
@@ -228,50 +228,50 @@ export interface GoogleCredentials {
 }
 
 export interface Group {
-    collections:  CollectionSummary[];
+    collections:  CollectionSummaryElement[];
     created_at:   string;
     created_by?:  number | null;
     description:  string;
     external_id?: null | string;
     id:           number;
     name:         string;
-    price_lists:  PriceListSummary[];
+    price_lists:  List[];
     slug:         string;
     updated_at:   string;
-    users:        UserSummary[];
+    users:        UserSummaryElement[];
     [property: string]: any;
 }
 
 /**
  * Collection
  */
-export interface CollectionSummary {
-    acronym:      I18NString;
+export interface CollectionSummaryElement {
+    acronym:      Description;
     created_at:   string;
     created_by?:  number | null;
     external_id?: null | string;
     id:           number;
     image_url?:   null | string;
-    name:         I18NString;
+    name:         Description;
     num_colors:   number;
     num_sizes:    number;
     num_styles:   number;
-    pricing:      CollectionPricing[];
+    pricing:      PricingElement[];
     slug:         string;
     updated_at:   string;
     [property: string]: any;
 }
 
-export interface CollectionPricing {
+export interface PricingElement {
     date: string;
-    list: PriceListSummary;
+    list: List;
     [property: string]: any;
 }
 
 /**
  * Price list summary
  */
-export interface PriceListSummary {
+export interface List {
     external_id?: null | string;
     id:           number;
     name:         string;
@@ -279,10 +279,10 @@ export interface PriceListSummary {
     [property: string]: any;
 }
 
-export interface UserSummary {
+export interface UserSummaryElement {
     email:          string;
     id:             number;
-    last_sign_in:   string;
+    last_sign_in?:  null | string;
     name:           string;
     profile_image?: null | string;
     [property: string]: any;
@@ -291,24 +291,24 @@ export interface UserSummary {
 export interface MicrosoftCredentials {
     accessToken:   string;
     idToken:       string;
-    idTokenClaims: MicrosoftClaims;
+    idTokenClaims: IdTokenClaims;
     [property: string]: any;
 }
 
-export interface MicrosoftClaims {
+export interface IdTokenClaims {
     email: string;
     name:  string;
     [property: string]: any;
 }
 
 export interface UpdateGroup {
-    collections?: RefForCollection[] | null;
+    collections?: CollectionClass[] | null;
     description?: null | string;
     external_id?: null | string;
     name?:        null | string;
-    price_lists?: RefForPriceList[] | null;
+    price_lists?: PriceListElement[] | null;
     slug?:        null | string;
-    users?:       RefForUser[] | null;
+    users?:       UserClass[] | null;
     [property: string]: any;
 }
 
@@ -322,11 +322,11 @@ export interface UpdateOwnUser {
 
 export interface UpdateUser {
     email?:         null | string;
-    groups?:        RefForGroup[] | null;
+    groups?:        GroupClass[] | null;
     name?:          null | string;
     password?:      null | string;
     profile_image?: null | string;
-    roles?:         Role[] | null;
+    roles?:         RoleElement[] | null;
     [property: string]: any;
 }
 
@@ -338,7 +338,7 @@ export interface Category {
     created_by?:  number | null;
     external_id?: null | string;
     id:           number;
-    name:         I18NString;
+    name:         Description;
     slug:         string;
     updated_at:   string;
     [property: string]: any;
@@ -350,7 +350,7 @@ export interface Category {
 export interface CategorySummary {
     external_id?: null | string;
     id:           number;
-    name:         I18NString;
+    name:         Description;
     slug:         string;
     [property: string]: any;
 }
@@ -358,16 +358,16 @@ export interface CategorySummary {
 /**
  * Collection
  */
-export interface Collection {
-    acronym:      I18NString;
+export interface ApiCollection {
+    acronym:      Description;
     created_at:   string;
     created_by?:  number | null;
     external_id?: null | string;
     id:           number;
     image_url?:   null | string;
-    name:         I18NString;
-    pricing:      CollectionPricing[];
-    sizes:        NestedSize[];
+    name:         Description;
+    pricing:      PricingElement[];
+    sizes:        NestedSizeElement[];
     slug:         string;
     updated_at:   string;
     [property: string]: any;
@@ -376,12 +376,12 @@ export interface Collection {
 /**
  * Nested size (well, used by NestedColor, so `color` field isn't needed)
  */
-export interface NestedSize {
-    delivery_period?: string;
+export interface NestedSizeElement {
+    delivery_period?: null | string;
     ean_code?:        null | string;
     external_id?:     null | string;
     id:               number;
-    name:             I18NString;
+    name:             Description;
     number:           string;
     position:         number;
     service_item?:    boolean | null;
@@ -393,8 +393,8 @@ export interface NestedSize {
 /**
  * Collection
  */
-export interface CollectionItem {
-    style:        NestedStyle;
+export interface CollectionStyleItem {
+    style:        NestedStyleObject;
     user_comment: string;
     [property: string]: any;
 }
@@ -402,51 +402,51 @@ export interface CollectionItem {
 /**
  * Style nested with colors and sizes, with some metadata fields excluded
  */
-export interface NestedStyle {
-    attributes:         AttributeSummary[];
+export interface NestedStyleObject {
+    attributes:         NestedAttributeElement[];
     categories:         CategorySummary[];
-    colors:             NestedColor[];
+    colors:             NestedColorElement[];
     core?:              boolean | null;
     country_of_origin?: null | string;
-    description:        I18NString;
+    description:        Description;
     external_id?:       null | string;
-    gross_weight:       string;
+    gross_weight:       number | string;
     id:                 number;
     is_new?:            boolean | null;
-    name:               I18NString;
-    net_weight:         string;
+    name:               Description;
+    net_weight:         number | string;
     number:             string;
-    prices:             NestedPrice[];
+    prices:             NestedPriceElement[];
     slug:               string;
     tariff_no?:         null | string;
-    unit_volume:        string;
+    unit_volume:        number | string;
     [property: string]: any;
 }
 
 /**
  * Nested attribute
  */
-export interface AttributeSummary {
-    description:  I18NString;
+export interface NestedAttributeElement {
+    description:  Description;
     external_id?: null | string;
     id:           number;
     slug:         string;
-    title:        I18NString;
-    type:         AttributeTypeSummary;
+    title:        Description;
+    type:         AttributeTypeSummaryObject;
     [property: string]: any;
 }
 
 /**
  * Color with sizes included
  */
-export interface NestedColor {
+export interface NestedColorElement {
     external_id?: null | string;
     id:           number;
-    images:       ImageSummary[];
+    images:       ImageSummaryElement[];
     is_new?:      boolean | null;
-    name:         I18NString;
+    name:         Description;
     number:       string;
-    sizes:        NestedSize[];
+    sizes:        NestedSizeElement[];
     slug:         string;
     [property: string]: any;
 }
@@ -454,7 +454,7 @@ export interface NestedColor {
 /**
  * Image summary
  */
-export interface ImageSummary {
+export interface ImageSummaryElement {
     external_id?: null | string;
     id:           number;
     url:          string;
@@ -464,19 +464,19 @@ export interface ImageSummary {
 /**
  * Nested price set, for inclusion in a NestedStyle
  */
-export interface NestedPrice {
-    amount:   string;
+export interface NestedPriceElement {
+    amount:   number | string;
     currency: string;
     end:      string;
     id:       number;
-    list:     PriceListSummary;
+    list:     List;
     start:    string;
-    type:     PriceType;
+    type:     TypeEnum;
     uom?:     null | string;
     [property: string]: any;
 }
 
-export enum PriceType {
+export enum TypeEnum {
     Retail = "Retail",
     Unit = "Unit",
 }
@@ -485,18 +485,18 @@ export enum PriceType {
  * Collection
  */
 export interface CollectionWithItems {
-    acronym:      I18NString;
+    acronym:      Description;
     created_at:   string;
     created_by?:  number | null;
     external_id?: null | string;
     id:           number;
     image_url?:   null | string;
-    items:        CollectionItem[];
-    name:         I18NString;
+    items:        CollectionStyleItem[];
+    name:         Description;
     num_colors:   number;
     num_sizes:    number;
     num_styles:   number;
-    pricing:      CollectionPricing[];
+    pricing:      PricingElement[];
     slug:         string;
     updated_at:   string;
     [property: string]: any;
@@ -510,11 +510,11 @@ export interface Color {
     created_by?:  number | null;
     external_id?: null | string;
     id:           number;
-    images:       ImageSummary[];
-    name:         I18NString;
+    images:       ImageSummaryElement[];
+    name:         Description;
     number:       string;
     slug:         string;
-    style:        StyleSummary;
+    style:        StyleSummaryObject;
     updated_at:   string;
     [property: string]: any;
 }
@@ -522,10 +522,10 @@ export interface Color {
 /**
  * Style summary
  */
-export interface StyleSummary {
+export interface StyleSummaryObject {
     external_id?: null | string;
     id:           number;
-    name:         I18NString;
+    name:         Description;
     number:       string;
     slug:         string;
     [property: string]: any;
@@ -537,10 +537,10 @@ export interface StyleSummary {
 export interface ColorSummary {
     external_id?: null | string;
     id:           number;
-    name:         I18NString;
+    name:         Description;
     number:       string;
     slug:         string;
-    style:        StyleSummary;
+    style:        StyleSummaryObject;
     [property: string]: any;
 }
 
@@ -548,52 +548,52 @@ export interface ColorSummary {
  * Collection, for creation
  */
 export interface CreateCollection {
-    acronym:      I18NString;
+    acronym:      Description;
     external_id?: null | string;
-    image?:       ImageSource | null;
-    name:         I18NString;
-    new_colors:   RefForColor[];
-    new_styles:   RefForStyle[];
-    pricing:      CollectionPricing[];
-    sizes?:       RefForSize[];
+    image?:       ImageClass | null;
+    name:         Description;
+    new_colors:   NewColorElement[];
+    new_styles:   NewStyleElement[];
+    pricing:      PricingElement[];
+    sizes?:       SizeClass[];
     slug?:        null | string;
     [property: string]: any;
 }
 
-export interface ImageSource {
+export interface ImageClass {
     url?:    string;
-    bytes?:  number[];
+    bytes?:  number[] | string;
     base64?: string;
 }
 
-export interface RefForColor {
+export interface NewColorElement {
     id?:          number;
     external_id?: string;
     slug?:        string;
 }
 
-export interface RefForStyle {
+export interface NewStyleElement {
     id?:          number;
     external_id?: string;
     slug?:        string;
 }
 
-export interface RefForSize {
+export interface SizeClass {
     id?:          number;
     external_id?: string;
     slug?:        string;
 }
 
-export interface ErrorsSchema {
-    code:     ApiErrorCode;
-    response: ApiErrorResponse;
+export interface Errors {
+    code:     Code;
+    response: Response;
     [property: string]: any;
 }
 
 /**
  * Auto-generated discriminant enum variants
  */
-export enum ApiErrorCode {
+export enum Code {
     ApplicationNotReady = "ApplicationNotReady",
     Base64DecodeError = "Base64DecodeError",
     CsvError = "CsvError",
@@ -638,20 +638,20 @@ export enum ApiErrorCode {
     XlsxError = "XlsxError",
 }
 
-export interface ApiErrorResponse {
-    error_code:    ApiErrorCode;
+export interface Response {
+    error_code:    Code;
     error_message: string;
     [property: string]: any;
 }
 
-export interface ExportSchema {
-    field:    ExportField;
-    format:   ExportFormat;
+export interface Export {
+    field:    Field;
+    format:   Format;
     group_by: GroupBy;
     [property: string]: any;
 }
 
-export enum ExportField {
+export enum Field {
     Attribute = "attribute",
     CategoryName = "category_name",
     ColorExternalid = "color_external_id",
@@ -683,7 +683,7 @@ export enum ExportField {
     UnitVolume = "unit_volume",
 }
 
-export enum ExportFormat {
+export enum Format {
     Csv = "csv",
     Json = "json",
     Xlsx = "xlsx",
@@ -698,65 +698,65 @@ export enum GroupBy {
     Style = "style",
 }
 
-export interface FiltersSchema {
-    collection:          CollectionFilters;
+export interface Filters {
+    collection:          FiltersCollection;
     item_filter_choices: ItemFilterChoices;
-    style:               StyleFilters;
-    user:                UserFilters;
+    style:               Styles;
+    user:                FiltersUser;
     [property: string]: any;
 }
 
-export interface CollectionFilters {
-    styles?: StyleFilters;
+export interface FiltersCollection {
+    styles?: Styles;
     [property: string]: any;
 }
 
-export interface StyleFilters {
-    attributes?:        RefForAttribute[] | null;
-    categories?:        RefForCategory[] | null;
+export interface Styles {
+    attributes?:        AttributeClass[] | null;
+    categories?:        CategoryClass[] | null;
     core?:              boolean | null;
     country_of_origin?: string[] | null;
     new_colors?:        boolean | null;
     new_styles?:        boolean | null;
     numbers?:           string[] | null;
-    pricelists?:        RefForPriceList[] | null;
-    refs?:              RefForStyle[] | null;
+    pricelists?:        PriceListElement[] | null;
+    refs?:              NewStyleElement[] | null;
     service_item?:      boolean | null;
     status?:            string[] | null;
     [property: string]: any;
 }
 
-export interface RefForAttribute {
+export interface AttributeClass {
     id?:          number;
     external_id?: string;
     slug?:        string;
 }
 
-export interface RefForCategory {
+export interface CategoryClass {
     id?:          number;
     external_id?: string;
     slug?:        string;
 }
 
 export interface ItemFilterChoices {
-    attribute: EntityFilterChoice[];
-    category:  EntityFilterChoice[];
+    attribute: StyleElement[];
+    category:  StyleElement[];
     status:    string[];
-    style:     EntityFilterChoice[];
+    style:     StyleElement[];
     [property: string]: any;
 }
 
-export interface EntityFilterChoice {
+export interface StyleElement {
     id:        number;
-    image?:    null | ImageSummary;
-    subtitle?: null | I18NString;
-    title:     I18NString;
+    image?:    null | ImageSummaryElement;
+    subtitle?: null | Description;
+    title:     Description;
     [property: string]: any;
 }
 
-export interface UserFilters {
-    groups?: RefForGroup[] | null;
-    roles?:  Role[] | null;
+export interface FiltersUser {
+    groups?: GroupClass[] | null;
+    roles?:  RoleElement[] | null;
     [property: string]: any;
 }
 
@@ -786,9 +786,9 @@ export enum Language {
  * Style nested with colors and sizes, with some metadata fields excluded
  */
 export interface NestedStyleSummary {
-    colors: NestedColorSummary[];
+    colors: NestedStyleSummaryColor[];
     id:     number;
-    name:   I18NString;
+    name:   Description;
     number: string;
     [property: string]: any;
 }
@@ -796,21 +796,21 @@ export interface NestedStyleSummary {
 /**
  * Color with sizes included
  */
-export interface NestedColorSummary {
+export interface NestedStyleSummaryColor {
     id:             number;
-    name:           I18NString;
+    name:           Description;
     number:         string;
-    primary_image?: null | ImageSummary;
-    sizes:          NestedSizeSummary[];
+    primary_image?: null | ImageSummaryElement;
+    sizes:          PurpleSchema[];
     [property: string]: any;
 }
 
 /**
  * Nested size (well, used by NestedColor, so `color` field isn't needed)
  */
-export interface NestedSizeSummary {
+export interface PurpleSchema {
     id:     number;
-    name:   I18NString;
+    name:   Description;
     number: string;
     [property: string]: any;
 }
@@ -818,7 +818,7 @@ export interface NestedSizeSummary {
 /**
  * Organization
  */
-export interface Organization {
+export interface ApiOrganization {
     created_at:  string;
     created_by?: number | null;
     id:          number;
@@ -832,17 +832,17 @@ export interface Organization {
  * Price set (belonging to the same list and style, but with different start/end dates)
  */
 export interface Price {
-    amount:       string;
+    amount:       number | string;
     created_at:   string;
     created_by?:  number | null;
     currency:     string;
     end:          string;
     external_id?: null | string;
     id:           number;
-    list:         PriceListSummary;
+    list:         List;
     start:        string;
-    style:        StyleSummary;
-    type:         PriceType;
+    style:        StyleSummaryObject;
+    type:         TypeEnum;
     uom?:         null | string;
     updated_at:   string;
     [property: string]: any;
@@ -866,37 +866,37 @@ export interface PriceList {
  * Size
  */
 export interface Size {
-    color:           ColorSummary;
-    created_at:      string;
-    created_by?:     number | null;
-    delivery_period: string;
-    ean_code?:       null | string;
-    external_id?:    null | string;
-    id:              number;
-    name:            I18NString;
-    number:          string;
-    position:        number;
-    service_item?:   boolean | null;
-    slug:            string;
-    status?:         null | string;
-    updated_at:      string;
+    color:            ColorSummary;
+    created_at:       string;
+    created_by?:      number | null;
+    delivery_period?: null | string;
+    ean_code?:        null | string;
+    external_id?:     null | string;
+    id:               number;
+    name:             Description;
+    number:           string;
+    position:         number;
+    service_item?:    boolean | null;
+    slug:             string;
+    status?:          null | string;
+    updated_at:       string;
     [property: string]: any;
 }
 
-export interface SortByJsonSchema {
-    nested_style: NestedStyleSortOrder;
-    user:         UserSortOrder;
+export interface SortBy {
+    nested_style: NestedStyle;
+    user:         UserEnum;
     [property: string]: any;
 }
 
-export enum NestedStyleSortOrder {
+export enum NestedStyle {
     DeliveryPeriodAsc = "delivery_period:asc",
     DeliveryPeriodDesc = "delivery_period:desc",
     NameAsc = "name:asc",
     NumberAsc = "number:asc",
 }
 
-export enum UserSortOrder {
+export enum UserEnum {
     EmailAsc = "email:asc",
     LastSignInAsc = "last_sign_in:asc",
     LastSignInDesc = "last_sign_in:desc",
@@ -906,23 +906,23 @@ export enum UserSortOrder {
 /**
  * Style
  */
-export interface Style {
-    attributes:         AttributeSummary[];
+export interface PurpleStyle {
+    attributes:         NestedAttributeElement[];
     categories:         Category[];
     core?:              boolean | null;
     country_of_origin?: null | string;
     created_at:         string;
     created_by?:        number | null;
-    description:        I18NString;
+    description:        Description;
     external_id?:       null | string;
-    gross_weight:       string;
+    gross_weight:       number | string;
     id:                 number;
-    name:               I18NString;
-    net_weight:         string;
+    name:               Description;
+    net_weight:         number | string;
     number:             string;
     slug:               string;
     tariff_no?:         null | string;
-    unit_volume:        string;
+    unit_volume:        number | string;
     updated_at:         string;
     [property: string]: any;
 }
@@ -931,14 +931,14 @@ export interface Style {
  * Collection, for update
  */
 export interface UpdateCollection {
-    acronym?:     null | I18NString;
+    acronym?:     null | Description;
     external_id?: null | string;
-    image?:       ImageSource | null;
-    name?:        null | I18NString;
-    new_colors?:  RefForColor[] | null;
-    new_styles?:  RefForStyle[] | null;
-    pricing?:     CollectionPricing[] | null;
-    sizes?:       RefForSize[] | null;
+    image?:       ImageClass | null;
+    name?:        null | Description;
+    new_colors?:  NewColorElement[] | null;
+    new_styles?:  NewStyleElement[] | null;
+    pricing?:     PricingElement[] | null;
+    sizes?:       SizeClass[] | null;
     slug?:        null | string;
     [property: string]: any;
 }
@@ -962,20 +962,20 @@ export class Convert {
         return uncast(value, r("Attribute"));
     }
 
-    public static toI18NString(json: any): I18NString {
-        return cast(json, r("I18NString"));
+    public static toDescription(json: any): Description {
+        return cast(json, r("Description"));
     }
 
-    public static i18NStringToJson(value: I18NString): any {
-        return uncast(value, r("I18NString"));
+    public static descriptionToJson(value: Description): any {
+        return uncast(value, r("Description"));
     }
 
-    public static toAttributeTypeSummary(json: any): AttributeTypeSummary {
-        return cast(json, r("AttributeTypeSummary"));
+    public static toAttributeTypeSummaryObject(json: any): AttributeTypeSummaryObject {
+        return cast(json, r("AttributeTypeSummaryObject"));
     }
 
-    public static attributeTypeSummaryToJson(value: AttributeTypeSummary): any {
-        return uncast(value, r("AttributeTypeSummary"));
+    public static attributeTypeSummaryObjectToJson(value: AttributeTypeSummaryObject): any {
+        return uncast(value, r("AttributeTypeSummaryObject"));
     }
 
     public static toAttributeType(json: any): AttributeType {
@@ -986,12 +986,12 @@ export class Convert {
         return uncast(value, r("AttributeType"));
     }
 
-    public static toAuthJsonSchema(json: any): AuthJsonSchema {
-        return cast(json, r("AuthJsonSchema"));
+    public static toAuth(json: any): Auth {
+        return cast(json, r("Auth"));
     }
 
-    public static authJsonSchemaToJson(value: AuthJsonSchema): any {
-        return uncast(value, r("AuthJsonSchema"));
+    public static authToJson(value: Auth): any {
+        return uncast(value, r("Auth"));
     }
 
     public static toAuthenticatedUser(json: any): AuthenticatedUser {
@@ -1002,36 +1002,36 @@ export class Convert {
         return uncast(value, r("AuthenticatedUser"));
     }
 
-    public static toUser(json: any): User {
-        return cast(json, r("User"));
+    public static toAuthenticatedUserUser(json: any): AuthenticatedUserUser {
+        return cast(json, r("AuthenticatedUserUser"));
     }
 
-    public static userToJson(value: User): any {
-        return uncast(value, r("User"));
+    public static authenticatedUserUserToJson(value: AuthenticatedUserUser): any {
+        return uncast(value, r("AuthenticatedUserUser"));
     }
 
-    public static toGroupSummary(json: any): GroupSummary {
-        return cast(json, r("GroupSummary"));
+    public static toGroupSummaryElement(json: any): GroupSummaryElement {
+        return cast(json, r("GroupSummaryElement"));
     }
 
-    public static groupSummaryToJson(value: GroupSummary): any {
-        return uncast(value, r("GroupSummary"));
+    public static groupSummaryElementToJson(value: GroupSummaryElement): any {
+        return uncast(value, r("GroupSummaryElement"));
     }
 
-    public static toUserOrganization(json: any): UserOrganization {
-        return cast(json, r("UserOrganization"));
+    public static toOrganizationElement(json: any): OrganizationElement {
+        return cast(json, r("OrganizationElement"));
     }
 
-    public static userOrganizationToJson(value: UserOrganization): any {
-        return uncast(value, r("UserOrganization"));
+    public static organizationElementToJson(value: OrganizationElement): any {
+        return uncast(value, r("OrganizationElement"));
     }
 
-    public static toOrganizationSummary(json: any): OrganizationSummary {
-        return cast(json, r("OrganizationSummary"));
+    public static toOrganizationOrganization(json: any): OrganizationOrganization {
+        return cast(json, r("OrganizationOrganization"));
     }
 
-    public static organizationSummaryToJson(value: OrganizationSummary): any {
-        return uncast(value, r("OrganizationSummary"));
+    public static organizationOrganizationToJson(value: OrganizationOrganization): any {
+        return uncast(value, r("OrganizationOrganization"));
     }
 
     public static toCreateGroup(json: any): CreateGroup {
@@ -1042,28 +1042,28 @@ export class Convert {
         return uncast(value, r("CreateGroup"));
     }
 
-    public static toRefForCollection(json: any): RefForCollection {
-        return cast(json, r("RefForCollection"));
+    public static toCollectionClass(json: any): CollectionClass {
+        return cast(json, r("CollectionClass"));
     }
 
-    public static refForCollectionToJson(value: RefForCollection): any {
-        return uncast(value, r("RefForCollection"));
+    public static collectionClassToJson(value: CollectionClass): any {
+        return uncast(value, r("CollectionClass"));
     }
 
-    public static toRefForPriceList(json: any): RefForPriceList {
-        return cast(json, r("RefForPriceList"));
+    public static toPriceListElement(json: any): PriceListElement {
+        return cast(json, r("PriceListElement"));
     }
 
-    public static refForPriceListToJson(value: RefForPriceList): any {
-        return uncast(value, r("RefForPriceList"));
+    public static priceListElementToJson(value: PriceListElement): any {
+        return uncast(value, r("PriceListElement"));
     }
 
-    public static toRefForUser(json: any): RefForUser {
-        return cast(json, r("RefForUser"));
+    public static toUserClass(json: any): UserClass {
+        return cast(json, r("UserClass"));
     }
 
-    public static refForUserToJson(value: RefForUser): any {
-        return uncast(value, r("RefForUser"));
+    public static userClassToJson(value: UserClass): any {
+        return uncast(value, r("UserClass"));
     }
 
     public static toCreateUser(json: any): CreateUser {
@@ -1074,12 +1074,12 @@ export class Convert {
         return uncast(value, r("CreateUser"));
     }
 
-    public static toRefForGroup(json: any): RefForGroup {
-        return cast(json, r("RefForGroup"));
+    public static toGroupClass(json: any): GroupClass {
+        return cast(json, r("GroupClass"));
     }
 
-    public static refForGroupToJson(value: RefForGroup): any {
-        return uncast(value, r("RefForGroup"));
+    public static groupClassToJson(value: GroupClass): any {
+        return uncast(value, r("GroupClass"));
     }
 
     public static toGoogleCredentials(json: any): GoogleCredentials {
@@ -1098,36 +1098,36 @@ export class Convert {
         return uncast(value, r("Group"));
     }
 
-    public static toCollectionSummary(json: any): CollectionSummary {
-        return cast(json, r("CollectionSummary"));
+    public static toCollectionSummaryElement(json: any): CollectionSummaryElement {
+        return cast(json, r("CollectionSummaryElement"));
     }
 
-    public static collectionSummaryToJson(value: CollectionSummary): any {
-        return uncast(value, r("CollectionSummary"));
+    public static collectionSummaryElementToJson(value: CollectionSummaryElement): any {
+        return uncast(value, r("CollectionSummaryElement"));
     }
 
-    public static toCollectionPricing(json: any): CollectionPricing {
-        return cast(json, r("CollectionPricing"));
+    public static toPricingElement(json: any): PricingElement {
+        return cast(json, r("PricingElement"));
     }
 
-    public static collectionPricingToJson(value: CollectionPricing): any {
-        return uncast(value, r("CollectionPricing"));
+    public static pricingElementToJson(value: PricingElement): any {
+        return uncast(value, r("PricingElement"));
     }
 
-    public static toPriceListSummary(json: any): PriceListSummary {
-        return cast(json, r("PriceListSummary"));
+    public static toList(json: any): List {
+        return cast(json, r("List"));
     }
 
-    public static priceListSummaryToJson(value: PriceListSummary): any {
-        return uncast(value, r("PriceListSummary"));
+    public static listToJson(value: List): any {
+        return uncast(value, r("List"));
     }
 
-    public static toUserSummary(json: any): UserSummary {
-        return cast(json, r("UserSummary"));
+    public static toUserSummaryElement(json: any): UserSummaryElement {
+        return cast(json, r("UserSummaryElement"));
     }
 
-    public static userSummaryToJson(value: UserSummary): any {
-        return uncast(value, r("UserSummary"));
+    public static userSummaryElementToJson(value: UserSummaryElement): any {
+        return uncast(value, r("UserSummaryElement"));
     }
 
     public static toMicrosoftCredentials(json: any): MicrosoftCredentials {
@@ -1138,12 +1138,12 @@ export class Convert {
         return uncast(value, r("MicrosoftCredentials"));
     }
 
-    public static toMicrosoftClaims(json: any): MicrosoftClaims {
-        return cast(json, r("MicrosoftClaims"));
+    public static toIdTokenClaims(json: any): IdTokenClaims {
+        return cast(json, r("IdTokenClaims"));
     }
 
-    public static microsoftClaimsToJson(value: MicrosoftClaims): any {
-        return uncast(value, r("MicrosoftClaims"));
+    public static idTokenClaimsToJson(value: IdTokenClaims): any {
+        return uncast(value, r("IdTokenClaims"));
     }
 
     public static toUpdateGroup(json: any): UpdateGroup {
@@ -1186,68 +1186,68 @@ export class Convert {
         return uncast(value, r("CategorySummary"));
     }
 
-    public static toCollection(json: any): Collection {
-        return cast(json, r("Collection"));
+    public static toApiCollection(json: any): ApiCollection {
+        return cast(json, r("ApiCollection"));
     }
 
-    public static collectionToJson(value: Collection): any {
-        return uncast(value, r("Collection"));
+    public static apiCollectionToJson(value: ApiCollection): any {
+        return uncast(value, r("ApiCollection"));
     }
 
-    public static toNestedSize(json: any): NestedSize {
-        return cast(json, r("NestedSize"));
+    public static toNestedSizeElement(json: any): NestedSizeElement {
+        return cast(json, r("NestedSizeElement"));
     }
 
-    public static nestedSizeToJson(value: NestedSize): any {
-        return uncast(value, r("NestedSize"));
+    public static nestedSizeElementToJson(value: NestedSizeElement): any {
+        return uncast(value, r("NestedSizeElement"));
     }
 
-    public static toCollectionItem(json: any): CollectionItem {
-        return cast(json, r("CollectionItem"));
+    public static toCollectionStyleItem(json: any): CollectionStyleItem {
+        return cast(json, r("CollectionStyleItem"));
     }
 
-    public static collectionItemToJson(value: CollectionItem): any {
-        return uncast(value, r("CollectionItem"));
+    public static collectionStyleItemToJson(value: CollectionStyleItem): any {
+        return uncast(value, r("CollectionStyleItem"));
     }
 
-    public static toNestedStyle(json: any): NestedStyle {
-        return cast(json, r("NestedStyle"));
+    public static toNestedStyleObject(json: any): NestedStyleObject {
+        return cast(json, r("NestedStyleObject"));
     }
 
-    public static nestedStyleToJson(value: NestedStyle): any {
-        return uncast(value, r("NestedStyle"));
+    public static nestedStyleObjectToJson(value: NestedStyleObject): any {
+        return uncast(value, r("NestedStyleObject"));
     }
 
-    public static toAttributeSummary(json: any): AttributeSummary {
-        return cast(json, r("AttributeSummary"));
+    public static toNestedAttributeElement(json: any): NestedAttributeElement {
+        return cast(json, r("NestedAttributeElement"));
     }
 
-    public static attributeSummaryToJson(value: AttributeSummary): any {
-        return uncast(value, r("AttributeSummary"));
+    public static nestedAttributeElementToJson(value: NestedAttributeElement): any {
+        return uncast(value, r("NestedAttributeElement"));
     }
 
-    public static toNestedColor(json: any): NestedColor {
-        return cast(json, r("NestedColor"));
+    public static toNestedColorElement(json: any): NestedColorElement {
+        return cast(json, r("NestedColorElement"));
     }
 
-    public static nestedColorToJson(value: NestedColor): any {
-        return uncast(value, r("NestedColor"));
+    public static nestedColorElementToJson(value: NestedColorElement): any {
+        return uncast(value, r("NestedColorElement"));
     }
 
-    public static toImageSummary(json: any): ImageSummary {
-        return cast(json, r("ImageSummary"));
+    public static toImageSummaryElement(json: any): ImageSummaryElement {
+        return cast(json, r("ImageSummaryElement"));
     }
 
-    public static imageSummaryToJson(value: ImageSummary): any {
-        return uncast(value, r("ImageSummary"));
+    public static imageSummaryElementToJson(value: ImageSummaryElement): any {
+        return uncast(value, r("ImageSummaryElement"));
     }
 
-    public static toNestedPrice(json: any): NestedPrice {
-        return cast(json, r("NestedPrice"));
+    public static toNestedPriceElement(json: any): NestedPriceElement {
+        return cast(json, r("NestedPriceElement"));
     }
 
-    public static nestedPriceToJson(value: NestedPrice): any {
-        return uncast(value, r("NestedPrice"));
+    public static nestedPriceElementToJson(value: NestedPriceElement): any {
+        return uncast(value, r("NestedPriceElement"));
     }
 
     public static toCollectionWithItems(json: any): CollectionWithItems {
@@ -1266,12 +1266,12 @@ export class Convert {
         return uncast(value, r("Color"));
     }
 
-    public static toStyleSummary(json: any): StyleSummary {
-        return cast(json, r("StyleSummary"));
+    public static toStyleSummaryObject(json: any): StyleSummaryObject {
+        return cast(json, r("StyleSummaryObject"));
     }
 
-    public static styleSummaryToJson(value: StyleSummary): any {
-        return uncast(value, r("StyleSummary"));
+    public static styleSummaryObjectToJson(value: StyleSummaryObject): any {
+        return uncast(value, r("StyleSummaryObject"));
     }
 
     public static toColorSummary(json: any): ColorSummary {
@@ -1290,100 +1290,100 @@ export class Convert {
         return uncast(value, r("CreateCollection"));
     }
 
-    public static toImageSource(json: any): ImageSource {
-        return cast(json, r("ImageSource"));
+    public static toImageClass(json: any): ImageClass {
+        return cast(json, r("ImageClass"));
     }
 
-    public static imageSourceToJson(value: ImageSource): any {
-        return uncast(value, r("ImageSource"));
+    public static imageClassToJson(value: ImageClass): any {
+        return uncast(value, r("ImageClass"));
     }
 
-    public static toRefForColor(json: any): RefForColor {
-        return cast(json, r("RefForColor"));
+    public static toNewColorElement(json: any): NewColorElement {
+        return cast(json, r("NewColorElement"));
     }
 
-    public static refForColorToJson(value: RefForColor): any {
-        return uncast(value, r("RefForColor"));
+    public static newColorElementToJson(value: NewColorElement): any {
+        return uncast(value, r("NewColorElement"));
     }
 
-    public static toRefForStyle(json: any): RefForStyle {
-        return cast(json, r("RefForStyle"));
+    public static toNewStyleElement(json: any): NewStyleElement {
+        return cast(json, r("NewStyleElement"));
     }
 
-    public static refForStyleToJson(value: RefForStyle): any {
-        return uncast(value, r("RefForStyle"));
+    public static newStyleElementToJson(value: NewStyleElement): any {
+        return uncast(value, r("NewStyleElement"));
     }
 
-    public static toRefForSize(json: any): RefForSize {
-        return cast(json, r("RefForSize"));
+    public static toSizeClass(json: any): SizeClass {
+        return cast(json, r("SizeClass"));
     }
 
-    public static refForSizeToJson(value: RefForSize): any {
-        return uncast(value, r("RefForSize"));
+    public static sizeClassToJson(value: SizeClass): any {
+        return uncast(value, r("SizeClass"));
     }
 
-    public static toErrorsSchema(json: any): ErrorsSchema {
-        return cast(json, r("ErrorsSchema"));
+    public static toErrors(json: any): Errors {
+        return cast(json, r("Errors"));
     }
 
-    public static errorsSchemaToJson(value: ErrorsSchema): any {
-        return uncast(value, r("ErrorsSchema"));
+    public static errorsToJson(value: Errors): any {
+        return uncast(value, r("Errors"));
     }
 
-    public static toApiErrorResponse(json: any): ApiErrorResponse {
-        return cast(json, r("ApiErrorResponse"));
+    public static toResponse(json: any): Response {
+        return cast(json, r("Response"));
     }
 
-    public static apiErrorResponseToJson(value: ApiErrorResponse): any {
-        return uncast(value, r("ApiErrorResponse"));
+    public static responseToJson(value: Response): any {
+        return uncast(value, r("Response"));
     }
 
-    public static toExportSchema(json: any): ExportSchema {
-        return cast(json, r("ExportSchema"));
+    public static toExport(json: any): Export {
+        return cast(json, r("Export"));
     }
 
-    public static exportSchemaToJson(value: ExportSchema): any {
-        return uncast(value, r("ExportSchema"));
+    public static exportToJson(value: Export): any {
+        return uncast(value, r("Export"));
     }
 
-    public static toFiltersSchema(json: any): FiltersSchema {
-        return cast(json, r("FiltersSchema"));
+    public static toFilters(json: any): Filters {
+        return cast(json, r("Filters"));
     }
 
-    public static filtersSchemaToJson(value: FiltersSchema): any {
-        return uncast(value, r("FiltersSchema"));
+    public static filtersToJson(value: Filters): any {
+        return uncast(value, r("Filters"));
     }
 
-    public static toCollectionFilters(json: any): CollectionFilters {
-        return cast(json, r("CollectionFilters"));
+    public static toFiltersCollection(json: any): FiltersCollection {
+        return cast(json, r("FiltersCollection"));
     }
 
-    public static collectionFiltersToJson(value: CollectionFilters): any {
-        return uncast(value, r("CollectionFilters"));
+    public static filtersCollectionToJson(value: FiltersCollection): any {
+        return uncast(value, r("FiltersCollection"));
     }
 
-    public static toStyleFilters(json: any): StyleFilters {
-        return cast(json, r("StyleFilters"));
+    public static toStyles(json: any): Styles {
+        return cast(json, r("Styles"));
     }
 
-    public static styleFiltersToJson(value: StyleFilters): any {
-        return uncast(value, r("StyleFilters"));
+    public static stylesToJson(value: Styles): any {
+        return uncast(value, r("Styles"));
     }
 
-    public static toRefForAttribute(json: any): RefForAttribute {
-        return cast(json, r("RefForAttribute"));
+    public static toAttributeClass(json: any): AttributeClass {
+        return cast(json, r("AttributeClass"));
     }
 
-    public static refForAttributeToJson(value: RefForAttribute): any {
-        return uncast(value, r("RefForAttribute"));
+    public static attributeClassToJson(value: AttributeClass): any {
+        return uncast(value, r("AttributeClass"));
     }
 
-    public static toRefForCategory(json: any): RefForCategory {
-        return cast(json, r("RefForCategory"));
+    public static toCategoryClass(json: any): CategoryClass {
+        return cast(json, r("CategoryClass"));
     }
 
-    public static refForCategoryToJson(value: RefForCategory): any {
-        return uncast(value, r("RefForCategory"));
+    public static categoryClassToJson(value: CategoryClass): any {
+        return uncast(value, r("CategoryClass"));
     }
 
     public static toItemFilterChoices(json: any): ItemFilterChoices {
@@ -1394,20 +1394,20 @@ export class Convert {
         return uncast(value, r("ItemFilterChoices"));
     }
 
-    public static toEntityFilterChoice(json: any): EntityFilterChoice {
-        return cast(json, r("EntityFilterChoice"));
+    public static toStyleElement(json: any): StyleElement {
+        return cast(json, r("StyleElement"));
     }
 
-    public static entityFilterChoiceToJson(value: EntityFilterChoice): any {
-        return uncast(value, r("EntityFilterChoice"));
+    public static styleElementToJson(value: StyleElement): any {
+        return uncast(value, r("StyleElement"));
     }
 
-    public static toUserFilters(json: any): UserFilters {
-        return cast(json, r("UserFilters"));
+    public static toFiltersUser(json: any): FiltersUser {
+        return cast(json, r("FiltersUser"));
     }
 
-    public static userFiltersToJson(value: UserFilters): any {
-        return uncast(value, r("UserFilters"));
+    public static filtersUserToJson(value: FiltersUser): any {
+        return uncast(value, r("FiltersUser"));
     }
 
     public static toImage(json: any): Image {
@@ -1426,28 +1426,28 @@ export class Convert {
         return uncast(value, r("NestedStyleSummary"));
     }
 
-    public static toNestedColorSummary(json: any): NestedColorSummary {
-        return cast(json, r("NestedColorSummary"));
+    public static toNestedStyleSummaryColor(json: any): NestedStyleSummaryColor {
+        return cast(json, r("NestedStyleSummaryColor"));
     }
 
-    public static nestedColorSummaryToJson(value: NestedColorSummary): any {
-        return uncast(value, r("NestedColorSummary"));
+    public static nestedStyleSummaryColorToJson(value: NestedStyleSummaryColor): any {
+        return uncast(value, r("NestedStyleSummaryColor"));
     }
 
-    public static toNestedSizeSummary(json: any): NestedSizeSummary {
-        return cast(json, r("NestedSizeSummary"));
+    public static toPurpleSchema(json: any): PurpleSchema {
+        return cast(json, r("PurpleSchema"));
     }
 
-    public static nestedSizeSummaryToJson(value: NestedSizeSummary): any {
-        return uncast(value, r("NestedSizeSummary"));
+    public static purpleSchemaToJson(value: PurpleSchema): any {
+        return uncast(value, r("PurpleSchema"));
     }
 
-    public static toOrganization(json: any): Organization {
-        return cast(json, r("Organization"));
+    public static toApiOrganization(json: any): ApiOrganization {
+        return cast(json, r("ApiOrganization"));
     }
 
-    public static organizationToJson(value: Organization): any {
-        return uncast(value, r("Organization"));
+    public static apiOrganizationToJson(value: ApiOrganization): any {
+        return uncast(value, r("ApiOrganization"));
     }
 
     public static toPrice(json: any): Price {
@@ -1474,20 +1474,20 @@ export class Convert {
         return uncast(value, r("Size"));
     }
 
-    public static toSortByJsonSchema(json: any): SortByJsonSchema {
-        return cast(json, r("SortByJsonSchema"));
+    public static toSortBy(json: any): SortBy {
+        return cast(json, r("SortBy"));
     }
 
-    public static sortByJsonSchemaToJson(value: SortByJsonSchema): any {
-        return uncast(value, r("SortByJsonSchema"));
+    public static sortByToJson(value: SortBy): any {
+        return uncast(value, r("SortBy"));
     }
 
-    public static toStyle(json: any): Style {
-        return cast(json, r("Style"));
+    public static toPurpleStyle(json: any): PurpleStyle {
+        return cast(json, r("PurpleStyle"));
     }
 
-    public static styleToJson(value: Style): any {
-        return uncast(value, r("Style"));
+    public static purpleStyleToJson(value: PurpleStyle): any {
+        return uncast(value, r("PurpleStyle"));
     }
 
     public static toUpdateCollection(json: any): UpdateCollection {
@@ -1655,61 +1655,61 @@ const typeMap: any = {
     "Api": o([
         { json: "attribute", js: "attribute", typ: r("Attribute") },
         { json: "attribute_type", js: "attribute_type", typ: r("AttributeType") },
-        { json: "attribute_type_summary", js: "attribute_type_summary", typ: r("AttributeTypeSummary") },
-        { json: "auth", js: "auth", typ: r("AuthJsonSchema") },
+        { json: "attribute_type_summary", js: "attribute_type_summary", typ: r("AttributeTypeSummaryObject") },
+        { json: "auth", js: "auth", typ: r("Auth") },
         { json: "category", js: "category", typ: r("Category") },
         { json: "category_summary", js: "category_summary", typ: r("CategorySummary") },
-        { json: "collection", js: "collection", typ: r("Collection") },
-        { json: "collection_style_item", js: "collection_style_item", typ: r("CollectionItem") },
-        { json: "collection_summary", js: "collection_summary", typ: r("CollectionSummary") },
+        { json: "collection", js: "collection", typ: r("ApiCollection") },
+        { json: "collection_style_item", js: "collection_style_item", typ: r("CollectionStyleItem") },
+        { json: "collection_summary", js: "collection_summary", typ: r("CollectionSummaryElement") },
         { json: "collection_with_items", js: "collection_with_items", typ: r("CollectionWithItems") },
         { json: "color", js: "color", typ: r("Color") },
         { json: "color_summary", js: "color_summary", typ: r("ColorSummary") },
         { json: "create_collection", js: "create_collection", typ: r("CreateCollection") },
         { json: "environment", js: "environment", typ: r("Environment") },
-        { json: "errors", js: "errors", typ: r("ErrorsSchema") },
-        { json: "export", js: "export", typ: r("ExportSchema") },
-        { json: "filters", js: "filters", typ: r("FiltersSchema") },
-        { json: "i18n_string", js: "i18n_string", typ: r("I18NString") },
+        { json: "errors", js: "errors", typ: r("Errors") },
+        { json: "export", js: "export", typ: r("Export") },
+        { json: "filters", js: "filters", typ: r("Filters") },
+        { json: "i18n_string", js: "i18n_string", typ: r("Description") },
         { json: "image", js: "image", typ: r("Image") },
-        { json: "image_summary", js: "image_summary", typ: r("ImageSummary") },
+        { json: "image_summary", js: "image_summary", typ: r("ImageSummaryElement") },
         { json: "language", js: "language", typ: r("Language") },
-        { json: "nested_attribute", js: "nested_attribute", typ: r("AttributeSummary") },
-        { json: "nested_color", js: "nested_color", typ: r("NestedColor") },
-        { json: "nested_price", js: "nested_price", typ: r("NestedPrice") },
-        { json: "nested_size", js: "nested_size", typ: r("NestedSize") },
-        { json: "nested_style", js: "nested_style", typ: r("NestedStyle") },
+        { json: "nested_attribute", js: "nested_attribute", typ: r("NestedAttributeElement") },
+        { json: "nested_color", js: "nested_color", typ: r("NestedColorElement") },
+        { json: "nested_price", js: "nested_price", typ: r("NestedPriceElement") },
+        { json: "nested_size", js: "nested_size", typ: r("NestedSizeElement") },
+        { json: "nested_style", js: "nested_style", typ: r("NestedStyleObject") },
         { json: "nested_style_summary", js: "nested_style_summary", typ: r("NestedStyleSummary") },
-        { json: "organization", js: "organization", typ: r("Organization") },
+        { json: "organization", js: "organization", typ: r("ApiOrganization") },
         { json: "price", js: "price", typ: r("Price") },
         { json: "price_list", js: "price_list", typ: r("PriceList") },
-        { json: "price_list_summary", js: "price_list_summary", typ: r("PriceListSummary") },
+        { json: "price_list_summary", js: "price_list_summary", typ: r("List") },
         { json: "size", js: "size", typ: r("Size") },
-        { json: "sort_by", js: "sort_by", typ: r("SortByJsonSchema") },
-        { json: "style", js: "style", typ: r("Style") },
-        { json: "style_summary", js: "style_summary", typ: r("StyleSummary") },
+        { json: "sort_by", js: "sort_by", typ: r("SortBy") },
+        { json: "style", js: "style", typ: r("PurpleStyle") },
+        { json: "style_summary", js: "style_summary", typ: r("StyleSummaryObject") },
         { json: "update_collection", js: "update_collection", typ: r("UpdateCollection") },
     ], "any"),
     "Attribute": o([
         { json: "created_at", js: "created_at", typ: "" },
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
-        { json: "description", js: "description", typ: r("I18NString") },
+        { json: "description", js: "description", typ: r("Description") },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
         { json: "slug", js: "slug", typ: "" },
-        { json: "title", js: "title", typ: r("I18NString") },
-        { json: "type", js: "type", typ: r("AttributeTypeSummary") },
+        { json: "title", js: "title", typ: r("Description") },
+        { json: "type", js: "type", typ: r("AttributeTypeSummaryObject") },
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
-    "I18NString": o([
+    "Description": o([
         { json: "de", js: "de", typ: u(undefined, "") },
         { json: "en", js: "en", typ: u(undefined, "") },
         { json: "sv", js: "sv", typ: u(undefined, "") },
     ], "any"),
-    "AttributeTypeSummary": o([
+    "AttributeTypeSummaryObject": o([
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "slug", js: "slug", typ: "" },
     ], "any"),
     "AttributeType": o([
@@ -1717,41 +1717,41 @@ const typeMap: any = {
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "slug", js: "slug", typ: "" },
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
-    "AuthJsonSchema": o([
+    "Auth": o([
         { json: "authenticated_user", js: "authenticated_user", typ: r("AuthenticatedUser") },
         { json: "create_group", js: "create_group", typ: r("CreateGroup") },
         { json: "create_user", js: "create_user", typ: r("CreateUser") },
         { json: "google_credentials", js: "google_credentials", typ: r("GoogleCredentials") },
         { json: "group", js: "group", typ: r("Group") },
-        { json: "group_summary", js: "group_summary", typ: r("GroupSummary") },
+        { json: "group_summary", js: "group_summary", typ: r("GroupSummaryElement") },
         { json: "microsoft_credentials", js: "microsoft_credentials", typ: r("MicrosoftCredentials") },
         { json: "update_group", js: "update_group", typ: r("UpdateGroup") },
         { json: "update_own_user", js: "update_own_user", typ: r("UpdateOwnUser") },
         { json: "update_user", js: "update_user", typ: r("UpdateUser") },
-        { json: "user", js: "user", typ: r("User") },
-        { json: "user_summary", js: "user_summary", typ: r("UserSummary") },
+        { json: "user", js: "user", typ: r("AuthenticatedUserUser") },
+        { json: "user_summary", js: "user_summary", typ: r("UserSummaryElement") },
     ], "any"),
     "AuthenticatedUser": o([
         { json: "environment", js: "environment", typ: r("Environment") },
         { json: "token", js: "token", typ: "" },
-        { json: "user", js: "user", typ: r("User") },
+        { json: "user", js: "user", typ: r("AuthenticatedUserUser") },
     ], "any"),
-    "User": o([
+    "AuthenticatedUserUser": o([
         { json: "created_at", js: "created_at", typ: "" },
         { json: "email", js: "email", typ: "" },
-        { json: "groups", js: "groups", typ: a(r("GroupSummary")) },
+        { json: "groups", js: "groups", typ: a(r("GroupSummaryElement")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "last_sign_in", js: "last_sign_in", typ: "" },
+        { json: "last_sign_in", js: "last_sign_in", typ: u(undefined, u(null, "")) },
         { json: "name", js: "name", typ: "" },
-        { json: "organizations", js: "organizations", typ: a(r("UserOrganization")) },
+        { json: "organizations", js: "organizations", typ: a(r("OrganizationElement")) },
         { json: "profile_image", js: "profile_image", typ: u(undefined, u(null, "")) },
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
-    "GroupSummary": o([
+    "GroupSummaryElement": o([
         { json: "description", js: "description", typ: "" },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
@@ -1761,48 +1761,48 @@ const typeMap: any = {
         { json: "num_users", js: "num_users", typ: 0 },
         { json: "slug", js: "slug", typ: "" },
     ], "any"),
-    "UserOrganization": o([
-        { json: "organization", js: "organization", typ: r("OrganizationSummary") },
-        { json: "roles", js: "roles", typ: a(r("Role")) },
+    "OrganizationElement": o([
+        { json: "organization", js: "organization", typ: r("OrganizationOrganization") },
+        { json: "roles", js: "roles", typ: a(r("RoleElement")) },
     ], "any"),
-    "OrganizationSummary": o([
+    "OrganizationOrganization": o([
         { json: "id", js: "id", typ: 3.14 },
         { json: "logo_url", js: "logo_url", typ: u(undefined, u(null, "")) },
         { json: "name", js: "name", typ: "" },
     ], "any"),
     "CreateGroup": o([
-        { json: "collections", js: "collections", typ: u(undefined, a(r("RefForCollection"))) },
+        { json: "collections", js: "collections", typ: u(undefined, a(r("CollectionClass"))) },
         { json: "description", js: "description", typ: u(undefined, "") },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "name", js: "name", typ: "" },
-        { json: "price_lists", js: "price_lists", typ: u(undefined, a(r("RefForPriceList"))) },
+        { json: "price_lists", js: "price_lists", typ: u(undefined, a(r("PriceListElement"))) },
         { json: "slug", js: "slug", typ: u(undefined, u(null, "")) },
-        { json: "users", js: "users", typ: u(undefined, a(r("RefForUser"))) },
+        { json: "users", js: "users", typ: u(undefined, a(r("UserClass"))) },
     ], "any"),
-    "RefForCollection": o([
+    "CollectionClass": o([
         { json: "id", js: "id", typ: u(undefined, 3.14) },
         { json: "external_id", js: "external_id", typ: u(undefined, "") },
         { json: "slug", js: "slug", typ: u(undefined, "") },
     ], false),
-    "RefForPriceList": o([
+    "PriceListElement": o([
         { json: "id", js: "id", typ: u(undefined, 3.14) },
         { json: "external_id", js: "external_id", typ: u(undefined, "") },
         { json: "slug", js: "slug", typ: u(undefined, "") },
     ], false),
-    "RefForUser": o([
+    "UserClass": o([
         { json: "id", js: "id", typ: u(undefined, 3.14) },
         { json: "external_id", js: "external_id", typ: u(undefined, "") },
         { json: "slug", js: "slug", typ: u(undefined, "") },
     ], false),
     "CreateUser": o([
         { json: "email", js: "email", typ: "" },
-        { json: "groups", js: "groups", typ: u(undefined, u(a(r("RefForGroup")), null)) },
+        { json: "groups", js: "groups", typ: u(undefined, u(a(r("GroupClass")), null)) },
         { json: "name", js: "name", typ: "" },
         { json: "password", js: "password", typ: u(undefined, u(null, "")) },
         { json: "profile_image", js: "profile_image", typ: u(undefined, u(null, "")) },
-        { json: "roles", js: "roles", typ: u(undefined, u(a(r("Role")), null)) },
+        { json: "roles", js: "roles", typ: u(undefined, u(a(r("RoleElement")), null)) },
     ], "any"),
-    "RefForGroup": o([
+    "GroupClass": o([
         { json: "id", js: "id", typ: u(undefined, 3.14) },
         { json: "external_id", js: "external_id", typ: u(undefined, "") },
         { json: "slug", js: "slug", typ: u(undefined, "") },
@@ -1811,67 +1811,67 @@ const typeMap: any = {
         { json: "idToken", js: "idToken", typ: "" },
     ], "any"),
     "Group": o([
-        { json: "collections", js: "collections", typ: a(r("CollectionSummary")) },
+        { json: "collections", js: "collections", typ: a(r("CollectionSummaryElement")) },
         { json: "created_at", js: "created_at", typ: "" },
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
         { json: "description", js: "description", typ: "" },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
         { json: "name", js: "name", typ: "" },
-        { json: "price_lists", js: "price_lists", typ: a(r("PriceListSummary")) },
+        { json: "price_lists", js: "price_lists", typ: a(r("List")) },
         { json: "slug", js: "slug", typ: "" },
         { json: "updated_at", js: "updated_at", typ: "" },
-        { json: "users", js: "users", typ: a(r("UserSummary")) },
+        { json: "users", js: "users", typ: a(r("UserSummaryElement")) },
     ], "any"),
-    "CollectionSummary": o([
-        { json: "acronym", js: "acronym", typ: r("I18NString") },
+    "CollectionSummaryElement": o([
+        { json: "acronym", js: "acronym", typ: r("Description") },
         { json: "created_at", js: "created_at", typ: "" },
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
         { json: "image_url", js: "image_url", typ: u(undefined, u(null, "")) },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "num_colors", js: "num_colors", typ: 0 },
         { json: "num_sizes", js: "num_sizes", typ: 0 },
         { json: "num_styles", js: "num_styles", typ: 0 },
-        { json: "pricing", js: "pricing", typ: a(r("CollectionPricing")) },
+        { json: "pricing", js: "pricing", typ: a(r("PricingElement")) },
         { json: "slug", js: "slug", typ: "" },
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
-    "CollectionPricing": o([
+    "PricingElement": o([
         { json: "date", js: "date", typ: "" },
-        { json: "list", js: "list", typ: r("PriceListSummary") },
+        { json: "list", js: "list", typ: r("List") },
     ], "any"),
-    "PriceListSummary": o([
+    "List": o([
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
         { json: "name", js: "name", typ: "" },
         { json: "slug", js: "slug", typ: "" },
     ], "any"),
-    "UserSummary": o([
+    "UserSummaryElement": o([
         { json: "email", js: "email", typ: "" },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "last_sign_in", js: "last_sign_in", typ: "" },
+        { json: "last_sign_in", js: "last_sign_in", typ: u(undefined, u(null, "")) },
         { json: "name", js: "name", typ: "" },
         { json: "profile_image", js: "profile_image", typ: u(undefined, u(null, "")) },
     ], "any"),
     "MicrosoftCredentials": o([
         { json: "accessToken", js: "accessToken", typ: "" },
         { json: "idToken", js: "idToken", typ: "" },
-        { json: "idTokenClaims", js: "idTokenClaims", typ: r("MicrosoftClaims") },
+        { json: "idTokenClaims", js: "idTokenClaims", typ: r("IdTokenClaims") },
     ], "any"),
-    "MicrosoftClaims": o([
+    "IdTokenClaims": o([
         { json: "email", js: "email", typ: "" },
         { json: "name", js: "name", typ: "" },
     ], "any"),
     "UpdateGroup": o([
-        { json: "collections", js: "collections", typ: u(undefined, u(a(r("RefForCollection")), null)) },
+        { json: "collections", js: "collections", typ: u(undefined, u(a(r("CollectionClass")), null)) },
         { json: "description", js: "description", typ: u(undefined, u(null, "")) },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "name", js: "name", typ: u(undefined, u(null, "")) },
-        { json: "price_lists", js: "price_lists", typ: u(undefined, u(a(r("RefForPriceList")), null)) },
+        { json: "price_lists", js: "price_lists", typ: u(undefined, u(a(r("PriceListElement")), null)) },
         { json: "slug", js: "slug", typ: u(undefined, u(null, "")) },
-        { json: "users", js: "users", typ: u(undefined, u(a(r("RefForUser")), null)) },
+        { json: "users", js: "users", typ: u(undefined, u(a(r("UserClass")), null)) },
     ], "any"),
     "UpdateOwnUser": o([
         { json: "email", js: "email", typ: u(undefined, u(null, "")) },
@@ -1881,121 +1881,121 @@ const typeMap: any = {
     ], "any"),
     "UpdateUser": o([
         { json: "email", js: "email", typ: u(undefined, u(null, "")) },
-        { json: "groups", js: "groups", typ: u(undefined, u(a(r("RefForGroup")), null)) },
+        { json: "groups", js: "groups", typ: u(undefined, u(a(r("GroupClass")), null)) },
         { json: "name", js: "name", typ: u(undefined, u(null, "")) },
         { json: "password", js: "password", typ: u(undefined, u(null, "")) },
         { json: "profile_image", js: "profile_image", typ: u(undefined, u(null, "")) },
-        { json: "roles", js: "roles", typ: u(undefined, u(a(r("Role")), null)) },
+        { json: "roles", js: "roles", typ: u(undefined, u(a(r("RoleElement")), null)) },
     ], "any"),
     "Category": o([
         { json: "created_at", js: "created_at", typ: "" },
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "slug", js: "slug", typ: "" },
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
     "CategorySummary": o([
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "slug", js: "slug", typ: "" },
     ], "any"),
-    "Collection": o([
-        { json: "acronym", js: "acronym", typ: r("I18NString") },
+    "ApiCollection": o([
+        { json: "acronym", js: "acronym", typ: r("Description") },
         { json: "created_at", js: "created_at", typ: "" },
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
         { json: "image_url", js: "image_url", typ: u(undefined, u(null, "")) },
-        { json: "name", js: "name", typ: r("I18NString") },
-        { json: "pricing", js: "pricing", typ: a(r("CollectionPricing")) },
-        { json: "sizes", js: "sizes", typ: a(r("NestedSize")) },
+        { json: "name", js: "name", typ: r("Description") },
+        { json: "pricing", js: "pricing", typ: a(r("PricingElement")) },
+        { json: "sizes", js: "sizes", typ: a(r("NestedSizeElement")) },
         { json: "slug", js: "slug", typ: "" },
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
-    "NestedSize": o([
-        { json: "delivery_period", js: "delivery_period", typ: u(undefined, "") },
+    "NestedSizeElement": o([
+        { json: "delivery_period", js: "delivery_period", typ: u(undefined, u(null, "")) },
         { json: "ean_code", js: "ean_code", typ: u(undefined, u(null, "")) },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "number", js: "number", typ: "" },
         { json: "position", js: "position", typ: 0 },
         { json: "service_item", js: "service_item", typ: u(undefined, u(true, null)) },
         { json: "slug", js: "slug", typ: "" },
         { json: "status", js: "status", typ: u(undefined, u(null, "")) },
     ], "any"),
-    "CollectionItem": o([
-        { json: "style", js: "style", typ: r("NestedStyle") },
+    "CollectionStyleItem": o([
+        { json: "style", js: "style", typ: r("NestedStyleObject") },
         { json: "user_comment", js: "user_comment", typ: "" },
     ], "any"),
-    "NestedStyle": o([
-        { json: "attributes", js: "attributes", typ: a(r("AttributeSummary")) },
+    "NestedStyleObject": o([
+        { json: "attributes", js: "attributes", typ: a(r("NestedAttributeElement")) },
         { json: "categories", js: "categories", typ: a(r("CategorySummary")) },
-        { json: "colors", js: "colors", typ: a(r("NestedColor")) },
+        { json: "colors", js: "colors", typ: a(r("NestedColorElement")) },
         { json: "core", js: "core", typ: u(undefined, u(true, null)) },
         { json: "country_of_origin", js: "country_of_origin", typ: u(undefined, u(null, "")) },
-        { json: "description", js: "description", typ: r("I18NString") },
+        { json: "description", js: "description", typ: r("Description") },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
-        { json: "gross_weight", js: "gross_weight", typ: "" },
+        { json: "gross_weight", js: "gross_weight", typ: u(3.14, "") },
         { json: "id", js: "id", typ: 3.14 },
         { json: "is_new", js: "is_new", typ: u(undefined, u(true, null)) },
-        { json: "name", js: "name", typ: r("I18NString") },
-        { json: "net_weight", js: "net_weight", typ: "" },
+        { json: "name", js: "name", typ: r("Description") },
+        { json: "net_weight", js: "net_weight", typ: u(3.14, "") },
         { json: "number", js: "number", typ: "" },
-        { json: "prices", js: "prices", typ: a(r("NestedPrice")) },
+        { json: "prices", js: "prices", typ: a(r("NestedPriceElement")) },
         { json: "slug", js: "slug", typ: "" },
         { json: "tariff_no", js: "tariff_no", typ: u(undefined, u(null, "")) },
-        { json: "unit_volume", js: "unit_volume", typ: "" },
+        { json: "unit_volume", js: "unit_volume", typ: u(3.14, "") },
     ], "any"),
-    "AttributeSummary": o([
-        { json: "description", js: "description", typ: r("I18NString") },
+    "NestedAttributeElement": o([
+        { json: "description", js: "description", typ: r("Description") },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
         { json: "slug", js: "slug", typ: "" },
-        { json: "title", js: "title", typ: r("I18NString") },
-        { json: "type", js: "type", typ: r("AttributeTypeSummary") },
+        { json: "title", js: "title", typ: r("Description") },
+        { json: "type", js: "type", typ: r("AttributeTypeSummaryObject") },
     ], "any"),
-    "NestedColor": o([
+    "NestedColorElement": o([
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "images", js: "images", typ: a(r("ImageSummary")) },
+        { json: "images", js: "images", typ: a(r("ImageSummaryElement")) },
         { json: "is_new", js: "is_new", typ: u(undefined, u(true, null)) },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "number", js: "number", typ: "" },
-        { json: "sizes", js: "sizes", typ: a(r("NestedSize")) },
+        { json: "sizes", js: "sizes", typ: a(r("NestedSizeElement")) },
         { json: "slug", js: "slug", typ: "" },
     ], "any"),
-    "ImageSummary": o([
+    "ImageSummaryElement": o([
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
         { json: "url", js: "url", typ: "" },
     ], "any"),
-    "NestedPrice": o([
-        { json: "amount", js: "amount", typ: "" },
+    "NestedPriceElement": o([
+        { json: "amount", js: "amount", typ: u(3.14, "") },
         { json: "currency", js: "currency", typ: "" },
         { json: "end", js: "end", typ: "" },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "list", js: "list", typ: r("PriceListSummary") },
+        { json: "list", js: "list", typ: r("List") },
         { json: "start", js: "start", typ: "" },
-        { json: "type", js: "type", typ: r("PriceType") },
+        { json: "type", js: "type", typ: r("TypeEnum") },
         { json: "uom", js: "uom", typ: u(undefined, u(null, "")) },
     ], "any"),
     "CollectionWithItems": o([
-        { json: "acronym", js: "acronym", typ: r("I18NString") },
+        { json: "acronym", js: "acronym", typ: r("Description") },
         { json: "created_at", js: "created_at", typ: "" },
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
         { json: "image_url", js: "image_url", typ: u(undefined, u(null, "")) },
-        { json: "items", js: "items", typ: a(r("CollectionItem")) },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "items", js: "items", typ: a(r("CollectionStyleItem")) },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "num_colors", js: "num_colors", typ: 0 },
         { json: "num_sizes", js: "num_sizes", typ: 0 },
         { json: "num_styles", js: "num_styles", typ: 0 },
-        { json: "pricing", js: "pricing", typ: a(r("CollectionPricing")) },
+        { json: "pricing", js: "pricing", typ: a(r("PricingElement")) },
         { json: "slug", js: "slug", typ: "" },
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
@@ -2004,119 +2004,119 @@ const typeMap: any = {
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "images", js: "images", typ: a(r("ImageSummary")) },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "images", js: "images", typ: a(r("ImageSummaryElement")) },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "number", js: "number", typ: "" },
         { json: "slug", js: "slug", typ: "" },
-        { json: "style", js: "style", typ: r("StyleSummary") },
+        { json: "style", js: "style", typ: r("StyleSummaryObject") },
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
-    "StyleSummary": o([
+    "StyleSummaryObject": o([
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "number", js: "number", typ: "" },
         { json: "slug", js: "slug", typ: "" },
     ], "any"),
     "ColorSummary": o([
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "number", js: "number", typ: "" },
         { json: "slug", js: "slug", typ: "" },
-        { json: "style", js: "style", typ: r("StyleSummary") },
+        { json: "style", js: "style", typ: r("StyleSummaryObject") },
     ], "any"),
     "CreateCollection": o([
-        { json: "acronym", js: "acronym", typ: r("I18NString") },
+        { json: "acronym", js: "acronym", typ: r("Description") },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
-        { json: "image", js: "image", typ: u(undefined, u(r("ImageSource"), null)) },
-        { json: "name", js: "name", typ: r("I18NString") },
-        { json: "new_colors", js: "new_colors", typ: a(r("RefForColor")) },
-        { json: "new_styles", js: "new_styles", typ: a(r("RefForStyle")) },
-        { json: "pricing", js: "pricing", typ: a(r("CollectionPricing")) },
-        { json: "sizes", js: "sizes", typ: u(undefined, a(r("RefForSize"))) },
+        { json: "image", js: "image", typ: u(undefined, u(r("ImageClass"), null)) },
+        { json: "name", js: "name", typ: r("Description") },
+        { json: "new_colors", js: "new_colors", typ: a(r("NewColorElement")) },
+        { json: "new_styles", js: "new_styles", typ: a(r("NewStyleElement")) },
+        { json: "pricing", js: "pricing", typ: a(r("PricingElement")) },
+        { json: "sizes", js: "sizes", typ: u(undefined, a(r("SizeClass"))) },
         { json: "slug", js: "slug", typ: u(undefined, u(null, "")) },
     ], "any"),
-    "ImageSource": o([
+    "ImageClass": o([
         { json: "url", js: "url", typ: u(undefined, "") },
-        { json: "bytes", js: "bytes", typ: u(undefined, a(0)) },
+        { json: "bytes", js: "bytes", typ: u(undefined, u(a(0), "")) },
         { json: "base64", js: "base64", typ: u(undefined, "") },
     ], false),
-    "RefForColor": o([
+    "NewColorElement": o([
         { json: "id", js: "id", typ: u(undefined, 3.14) },
         { json: "external_id", js: "external_id", typ: u(undefined, "") },
         { json: "slug", js: "slug", typ: u(undefined, "") },
     ], false),
-    "RefForStyle": o([
+    "NewStyleElement": o([
         { json: "id", js: "id", typ: u(undefined, 3.14) },
         { json: "external_id", js: "external_id", typ: u(undefined, "") },
         { json: "slug", js: "slug", typ: u(undefined, "") },
     ], false),
-    "RefForSize": o([
+    "SizeClass": o([
         { json: "id", js: "id", typ: u(undefined, 3.14) },
         { json: "external_id", js: "external_id", typ: u(undefined, "") },
         { json: "slug", js: "slug", typ: u(undefined, "") },
     ], false),
-    "ErrorsSchema": o([
-        { json: "code", js: "code", typ: r("ApiErrorCode") },
-        { json: "response", js: "response", typ: r("ApiErrorResponse") },
+    "Errors": o([
+        { json: "code", js: "code", typ: r("Code") },
+        { json: "response", js: "response", typ: r("Response") },
     ], "any"),
-    "ApiErrorResponse": o([
-        { json: "error_code", js: "error_code", typ: r("ApiErrorCode") },
+    "Response": o([
+        { json: "error_code", js: "error_code", typ: r("Code") },
         { json: "error_message", js: "error_message", typ: "" },
     ], "any"),
-    "ExportSchema": o([
-        { json: "field", js: "field", typ: r("ExportField") },
-        { json: "format", js: "format", typ: r("ExportFormat") },
+    "Export": o([
+        { json: "field", js: "field", typ: r("Field") },
+        { json: "format", js: "format", typ: r("Format") },
         { json: "group_by", js: "group_by", typ: r("GroupBy") },
     ], "any"),
-    "FiltersSchema": o([
-        { json: "collection", js: "collection", typ: r("CollectionFilters") },
+    "Filters": o([
+        { json: "collection", js: "collection", typ: r("FiltersCollection") },
         { json: "item_filter_choices", js: "item_filter_choices", typ: r("ItemFilterChoices") },
-        { json: "style", js: "style", typ: r("StyleFilters") },
-        { json: "user", js: "user", typ: r("UserFilters") },
+        { json: "style", js: "style", typ: r("Styles") },
+        { json: "user", js: "user", typ: r("FiltersUser") },
     ], "any"),
-    "CollectionFilters": o([
-        { json: "styles", js: "styles", typ: u(undefined, r("StyleFilters")) },
+    "FiltersCollection": o([
+        { json: "styles", js: "styles", typ: u(undefined, r("Styles")) },
     ], "any"),
-    "StyleFilters": o([
-        { json: "attributes", js: "attributes", typ: u(undefined, u(a(r("RefForAttribute")), null)) },
-        { json: "categories", js: "categories", typ: u(undefined, u(a(r("RefForCategory")), null)) },
+    "Styles": o([
+        { json: "attributes", js: "attributes", typ: u(undefined, u(a(r("AttributeClass")), null)) },
+        { json: "categories", js: "categories", typ: u(undefined, u(a(r("CategoryClass")), null)) },
         { json: "core", js: "core", typ: u(undefined, u(true, null)) },
         { json: "country_of_origin", js: "country_of_origin", typ: u(undefined, u(a(""), null)) },
         { json: "new_colors", js: "new_colors", typ: u(undefined, u(true, null)) },
         { json: "new_styles", js: "new_styles", typ: u(undefined, u(true, null)) },
         { json: "numbers", js: "numbers", typ: u(undefined, u(a(""), null)) },
-        { json: "pricelists", js: "pricelists", typ: u(undefined, u(a(r("RefForPriceList")), null)) },
-        { json: "refs", js: "refs", typ: u(undefined, u(a(r("RefForStyle")), null)) },
+        { json: "pricelists", js: "pricelists", typ: u(undefined, u(a(r("PriceListElement")), null)) },
+        { json: "refs", js: "refs", typ: u(undefined, u(a(r("NewStyleElement")), null)) },
         { json: "service_item", js: "service_item", typ: u(undefined, u(true, null)) },
         { json: "status", js: "status", typ: u(undefined, u(a(""), null)) },
     ], "any"),
-    "RefForAttribute": o([
+    "AttributeClass": o([
         { json: "id", js: "id", typ: u(undefined, 3.14) },
         { json: "external_id", js: "external_id", typ: u(undefined, "") },
         { json: "slug", js: "slug", typ: u(undefined, "") },
     ], false),
-    "RefForCategory": o([
+    "CategoryClass": o([
         { json: "id", js: "id", typ: u(undefined, 3.14) },
         { json: "external_id", js: "external_id", typ: u(undefined, "") },
         { json: "slug", js: "slug", typ: u(undefined, "") },
     ], false),
     "ItemFilterChoices": o([
-        { json: "attribute", js: "attribute", typ: a(r("EntityFilterChoice")) },
-        { json: "category", js: "category", typ: a(r("EntityFilterChoice")) },
+        { json: "attribute", js: "attribute", typ: a(r("StyleElement")) },
+        { json: "category", js: "category", typ: a(r("StyleElement")) },
         { json: "status", js: "status", typ: a("") },
-        { json: "style", js: "style", typ: a(r("EntityFilterChoice")) },
+        { json: "style", js: "style", typ: a(r("StyleElement")) },
     ], "any"),
-    "EntityFilterChoice": o([
+    "StyleElement": o([
         { json: "id", js: "id", typ: 0 },
-        { json: "image", js: "image", typ: u(undefined, u(null, r("ImageSummary"))) },
-        { json: "subtitle", js: "subtitle", typ: u(undefined, u(null, r("I18NString"))) },
-        { json: "title", js: "title", typ: r("I18NString") },
+        { json: "image", js: "image", typ: u(undefined, u(null, r("ImageSummaryElement"))) },
+        { json: "subtitle", js: "subtitle", typ: u(undefined, u(null, r("Description"))) },
+        { json: "title", js: "title", typ: r("Description") },
     ], "any"),
-    "UserFilters": o([
-        { json: "groups", js: "groups", typ: u(undefined, u(a(r("RefForGroup")), null)) },
-        { json: "roles", js: "roles", typ: u(undefined, u(a(r("Role")), null)) },
+    "FiltersUser": o([
+        { json: "groups", js: "groups", typ: u(undefined, u(a(r("GroupClass")), null)) },
+        { json: "roles", js: "roles", typ: u(undefined, u(a(r("RoleElement")), null)) },
     ], "any"),
     "Image": o([
         { json: "color", js: "color", typ: r("ColorSummary") },
@@ -2130,24 +2130,24 @@ const typeMap: any = {
         { json: "url", js: "url", typ: "" },
     ], "any"),
     "NestedStyleSummary": o([
-        { json: "colors", js: "colors", typ: a(r("NestedColorSummary")) },
+        { json: "colors", js: "colors", typ: a(r("NestedStyleSummaryColor")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "number", js: "number", typ: "" },
     ], "any"),
-    "NestedColorSummary": o([
+    "NestedStyleSummaryColor": o([
         { json: "id", js: "id", typ: 3.14 },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "number", js: "number", typ: "" },
-        { json: "primary_image", js: "primary_image", typ: u(undefined, u(null, r("ImageSummary"))) },
-        { json: "sizes", js: "sizes", typ: a(r("NestedSizeSummary")) },
+        { json: "primary_image", js: "primary_image", typ: u(undefined, u(null, r("ImageSummaryElement"))) },
+        { json: "sizes", js: "sizes", typ: a(r("PurpleSchema")) },
     ], "any"),
-    "NestedSizeSummary": o([
+    "PurpleSchema": o([
         { json: "id", js: "id", typ: 3.14 },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "number", js: "number", typ: "" },
     ], "any"),
-    "Organization": o([
+    "ApiOrganization": o([
         { json: "created_at", js: "created_at", typ: "" },
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
         { json: "id", js: "id", typ: 3.14 },
@@ -2156,17 +2156,17 @@ const typeMap: any = {
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
     "Price": o([
-        { json: "amount", js: "amount", typ: "" },
+        { json: "amount", js: "amount", typ: u(3.14, "") },
         { json: "created_at", js: "created_at", typ: "" },
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
         { json: "currency", js: "currency", typ: "" },
         { json: "end", js: "end", typ: "" },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "list", js: "list", typ: r("PriceListSummary") },
+        { json: "list", js: "list", typ: r("List") },
         { json: "start", js: "start", typ: "" },
-        { json: "style", js: "style", typ: r("StyleSummary") },
-        { json: "type", js: "type", typ: r("PriceType") },
+        { json: "style", js: "style", typ: r("StyleSummaryObject") },
+        { json: "type", js: "type", typ: r("TypeEnum") },
         { json: "uom", js: "uom", typ: u(undefined, u(null, "")) },
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
@@ -2183,11 +2183,11 @@ const typeMap: any = {
         { json: "color", js: "color", typ: r("ColorSummary") },
         { json: "created_at", js: "created_at", typ: "" },
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
-        { json: "delivery_period", js: "delivery_period", typ: "" },
+        { json: "delivery_period", js: "delivery_period", typ: u(undefined, u(null, "")) },
         { json: "ean_code", js: "ean_code", typ: u(undefined, u(null, "")) },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "name", js: "name", typ: r("I18NString") },
+        { json: "name", js: "name", typ: r("Description") },
         { json: "number", js: "number", typ: "" },
         { json: "position", js: "position", typ: 0 },
         { json: "service_item", js: "service_item", typ: u(undefined, u(true, null)) },
@@ -2195,38 +2195,38 @@ const typeMap: any = {
         { json: "status", js: "status", typ: u(undefined, u(null, "")) },
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
-    "SortByJsonSchema": o([
-        { json: "nested_style", js: "nested_style", typ: r("NestedStyleSortOrder") },
-        { json: "user", js: "user", typ: r("UserSortOrder") },
+    "SortBy": o([
+        { json: "nested_style", js: "nested_style", typ: r("NestedStyle") },
+        { json: "user", js: "user", typ: r("UserEnum") },
     ], "any"),
-    "Style": o([
-        { json: "attributes", js: "attributes", typ: a(r("AttributeSummary")) },
+    "PurpleStyle": o([
+        { json: "attributes", js: "attributes", typ: a(r("NestedAttributeElement")) },
         { json: "categories", js: "categories", typ: a(r("Category")) },
         { json: "core", js: "core", typ: u(undefined, u(true, null)) },
         { json: "country_of_origin", js: "country_of_origin", typ: u(undefined, u(null, "")) },
         { json: "created_at", js: "created_at", typ: "" },
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
-        { json: "description", js: "description", typ: r("I18NString") },
+        { json: "description", js: "description", typ: r("Description") },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
-        { json: "gross_weight", js: "gross_weight", typ: "" },
+        { json: "gross_weight", js: "gross_weight", typ: u(3.14, "") },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "name", js: "name", typ: r("I18NString") },
-        { json: "net_weight", js: "net_weight", typ: "" },
+        { json: "name", js: "name", typ: r("Description") },
+        { json: "net_weight", js: "net_weight", typ: u(3.14, "") },
         { json: "number", js: "number", typ: "" },
         { json: "slug", js: "slug", typ: "" },
         { json: "tariff_no", js: "tariff_no", typ: u(undefined, u(null, "")) },
-        { json: "unit_volume", js: "unit_volume", typ: "" },
+        { json: "unit_volume", js: "unit_volume", typ: u(3.14, "") },
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
     "UpdateCollection": o([
-        { json: "acronym", js: "acronym", typ: u(undefined, u(null, r("I18NString"))) },
+        { json: "acronym", js: "acronym", typ: u(undefined, u(null, r("Description"))) },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
-        { json: "image", js: "image", typ: u(undefined, u(r("ImageSource"), null)) },
-        { json: "name", js: "name", typ: u(undefined, u(null, r("I18NString"))) },
-        { json: "new_colors", js: "new_colors", typ: u(undefined, u(a(r("RefForColor")), null)) },
-        { json: "new_styles", js: "new_styles", typ: u(undefined, u(a(r("RefForStyle")), null)) },
-        { json: "pricing", js: "pricing", typ: u(undefined, u(a(r("CollectionPricing")), null)) },
-        { json: "sizes", js: "sizes", typ: u(undefined, u(a(r("RefForSize")), null)) },
+        { json: "image", js: "image", typ: u(undefined, u(r("ImageClass"), null)) },
+        { json: "name", js: "name", typ: u(undefined, u(null, r("Description"))) },
+        { json: "new_colors", js: "new_colors", typ: u(undefined, u(a(r("NewColorElement")), null)) },
+        { json: "new_styles", js: "new_styles", typ: u(undefined, u(a(r("NewStyleElement")), null)) },
+        { json: "pricing", js: "pricing", typ: u(undefined, u(a(r("PricingElement")), null)) },
+        { json: "sizes", js: "sizes", typ: u(undefined, u(a(r("SizeClass")), null)) },
         { json: "slug", js: "slug", typ: u(undefined, u(null, "")) },
     ], "any"),
     "Environment": [
@@ -2234,17 +2234,17 @@ const typeMap: any = {
         "production",
         "staging",
     ],
-    "Role": [
+    "RoleElement": [
         "Active",
         "Administrator",
         "Editor",
         "Viewer",
     ],
-    "PriceType": [
+    "TypeEnum": [
         "Retail",
         "Unit",
     ],
-    "ApiErrorCode": [
+    "Code": [
         "ApplicationNotReady",
         "Base64DecodeError",
         "CsvError",
@@ -2288,7 +2288,7 @@ const typeMap: any = {
         "UserEmailNotFound",
         "XlsxError",
     ],
-    "ExportField": [
+    "Field": [
         "attribute",
         "category_name",
         "color_external_id",
@@ -2319,7 +2319,7 @@ const typeMap: any = {
         "unit_price_list",
         "unit_volume",
     ],
-    "ExportFormat": [
+    "Format": [
         "csv",
         "json",
         "xlsx",
@@ -2337,13 +2337,13 @@ const typeMap: any = {
         "en",
         "sv",
     ],
-    "NestedStyleSortOrder": [
+    "NestedStyle": [
         "delivery_period:asc",
         "delivery_period:desc",
         "name:asc",
         "number:asc",
     ],
-    "UserSortOrder": [
+    "UserEnum": [
         "email:asc",
         "last_sign_in:asc",
         "last_sign_in:desc",
