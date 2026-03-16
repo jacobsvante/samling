@@ -230,7 +230,6 @@
         "email",
         "groups",
         "id",
-        "last_sign_in",
         "name",
         "organizations",
         "updated_at"
@@ -246,7 +245,10 @@
           "type": "string"
         },
         "last_sign_in": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time"
         },
         "created_at": {
@@ -394,7 +396,6 @@
       "required": [
         "email",
         "id",
-        "last_sign_in",
         "name"
       ],
       "properties": {
@@ -408,7 +409,10 @@
           "type": "string"
         },
         "last_sign_in": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time"
         },
         "profile_image": {
@@ -2023,8 +2027,10 @@
           ]
         },
         "delivery_period": {
-          "default": null,
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date"
         }
       }
@@ -3140,7 +3146,6 @@
       "required": [
         "color",
         "created_at",
-        "delivery_period",
         "id",
         "name",
         "number",
@@ -3185,7 +3190,10 @@
           ]
         },
         "delivery_period": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date"
         },
         "slug": {
