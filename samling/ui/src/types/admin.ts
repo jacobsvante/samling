@@ -32,6 +32,7 @@ export function makeEditableStyle(
         sizes: fullColor.sizes.map((fullSize) => ({
           id: fullSize.id,
           number: fullSize.number,
+          externalId: fullSize.external_id ?? null,
           enabled:
             (style.colors as NestedColorSummary[])
               .find((enabledColor) => enabledColor.id === fullColor.id)
@@ -46,7 +47,9 @@ export function makeEditableStyle(
 export interface EditableSize {
   id: number;
   number: string;
+  externalId: string | null;
   enabled: boolean;
+  removed?: boolean;
 }
 
 export interface EditableColor {
@@ -56,6 +59,7 @@ export interface EditableColor {
   primaryImage?: ImageSummary | null;
   sizes: EditableSize[];
   isNew: boolean;
+  removed?: boolean;
 }
 
 export interface EditableStyle {
@@ -64,6 +68,7 @@ export interface EditableStyle {
   number: string;
   colors: EditableColor[];
   isNew: boolean;
+  removed?: boolean;
 }
 
 export function transferIsNew(prev: EditableStyle, current: EditableStyle): EditableStyle {

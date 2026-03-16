@@ -149,7 +149,7 @@ pub struct ColorRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> ColorRowBorrowed,
+    extractor: fn(&tokio_postgres::Row) -> Result<ColorRowBorrowed, tokio_postgres::Error>,
     mapper: fn(ColorRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> ColorRowQuery<'c, 'a, 's, C, T, N>
@@ -168,7 +168,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -179,7 +179,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -192,7 +196,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -201,7 +210,7 @@ pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> i32,
+    extractor: fn(&tokio_postgres::Row) -> Result<i32, tokio_postgres::Error>,
     mapper: fn(i32) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
@@ -220,7 +229,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -231,7 +240,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -244,7 +257,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -253,7 +271,7 @@ pub struct ColorRefsQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> ColorRefsBorrowed,
+    extractor: fn(&tokio_postgres::Row) -> Result<ColorRefsBorrowed, tokio_postgres::Error>,
     mapper: fn(ColorRefsBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> ColorRefsQuery<'c, 'a, 's, C, T, N>
@@ -272,7 +290,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -283,7 +301,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -296,7 +318,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -317,20 +344,23 @@ impl ListColorsStmt {
             client,
             params: [organization_id],
             stmt: &mut self.0,
-            extractor: |row| ColorRowBorrowed {
-                id: row.get(0),
-                organization_id: row.get(1),
-                slug: row.get(2),
-                external_id: row.get(3),
-                style_id: row.get(4),
-                number: row.get(5),
-                name: row.get(6),
-                created_by: row.get(7),
-                created_at: row.get(8),
-                updated_at: row.get(9),
-                style: row.get(10),
-                images: row.get(11),
-            },
+            extractor:
+                |row: &tokio_postgres::Row| -> Result<ColorRowBorrowed, tokio_postgres::Error> {
+                    Ok(ColorRowBorrowed {
+                        id: row.try_get(0)?,
+                        organization_id: row.try_get(1)?,
+                        slug: row.try_get(2)?,
+                        external_id: row.try_get(3)?,
+                        style_id: row.try_get(4)?,
+                        number: row.try_get(5)?,
+                        name: row.try_get(6)?,
+                        created_by: row.try_get(7)?,
+                        created_at: row.try_get(8)?,
+                        updated_at: row.try_get(9)?,
+                        style: row.try_get(10)?,
+                        images: row.try_get(11)?,
+                    })
+                },
             mapper: |it| ColorRow::from(it),
         }
     }
@@ -354,20 +384,23 @@ impl GetColorStmt {
             client,
             params: [organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| ColorRowBorrowed {
-                id: row.get(0),
-                organization_id: row.get(1),
-                slug: row.get(2),
-                external_id: row.get(3),
-                style_id: row.get(4),
-                number: row.get(5),
-                name: row.get(6),
-                created_by: row.get(7),
-                created_at: row.get(8),
-                updated_at: row.get(9),
-                style: row.get(10),
-                images: row.get(11),
-            },
+            extractor:
+                |row: &tokio_postgres::Row| -> Result<ColorRowBorrowed, tokio_postgres::Error> {
+                    Ok(ColorRowBorrowed {
+                        id: row.try_get(0)?,
+                        organization_id: row.try_get(1)?,
+                        slug: row.try_get(2)?,
+                        external_id: row.try_get(3)?,
+                        style_id: row.try_get(4)?,
+                        number: row.try_get(5)?,
+                        name: row.try_get(6)?,
+                        created_by: row.try_get(7)?,
+                        created_at: row.try_get(8)?,
+                        updated_at: row.try_get(9)?,
+                        style: row.try_get(10)?,
+                        images: row.try_get(11)?,
+                    })
+                },
             mapper: |it| ColorRow::from(it),
         }
     }
@@ -415,7 +448,7 @@ impl GetColorIdStmt {
             client,
             params: [organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -463,11 +496,14 @@ impl GetColorRefsStmt {
             client,
             params: [organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| ColorRefsBorrowed {
-                id: row.get(0),
-                external_id: row.get(1),
-                slug: row.get(2),
-            },
+            extractor:
+                |row: &tokio_postgres::Row| -> Result<ColorRefsBorrowed, tokio_postgres::Error> {
+                    Ok(ColorRefsBorrowed {
+                        id: row.try_get(0)?,
+                        external_id: row.try_get(1)?,
+                        slug: row.try_get(2)?,
+                    })
+                },
             mapper: |it| ColorRefs::from(it),
         }
     }
@@ -535,7 +571,7 @@ impl InsertColorStmt {
                 created_by,
             ],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }

@@ -105,7 +105,7 @@ pub struct ImageRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> ImageRowBorrowed,
+    extractor: fn(&tokio_postgres::Row) -> Result<ImageRowBorrowed, tokio_postgres::Error>,
     mapper: fn(ImageRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> ImageRowQuery<'c, 'a, 's, C, T, N>
@@ -124,7 +124,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -135,7 +135,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -148,7 +152,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -157,7 +166,7 @@ pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> i32,
+    extractor: fn(&tokio_postgres::Row) -> Result<i32, tokio_postgres::Error>,
     mapper: fn(i32) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
@@ -176,7 +185,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -187,7 +196,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -200,7 +213,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -209,7 +227,7 @@ pub struct StringQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> &str,
+    extractor: fn(&tokio_postgres::Row) -> Result<&str, tokio_postgres::Error>,
     mapper: fn(&str) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> StringQuery<'c, 'a, 's, C, T, N>
@@ -228,7 +246,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -239,7 +257,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -252,7 +274,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -273,19 +300,22 @@ impl ListImagesStmt {
             client,
             params: [organization_id],
             stmt: &mut self.0,
-            extractor: |row| ImageRowBorrowed {
-                id: row.get(0),
-                organization_id: row.get(1),
-                url: row.get(2),
-                external_id: row.get(3),
-                external_checksum: row.get(4),
-                position: row.get(5),
-                color_id: row.get(6),
-                uploaded_by: row.get(7),
-                uploaded_at: row.get(8),
-                updated_at: row.get(9),
-                color: row.get(10),
-            },
+            extractor:
+                |row: &tokio_postgres::Row| -> Result<ImageRowBorrowed, tokio_postgres::Error> {
+                    Ok(ImageRowBorrowed {
+                        id: row.try_get(0)?,
+                        organization_id: row.try_get(1)?,
+                        url: row.try_get(2)?,
+                        external_id: row.try_get(3)?,
+                        external_checksum: row.try_get(4)?,
+                        position: row.try_get(5)?,
+                        color_id: row.try_get(6)?,
+                        uploaded_by: row.try_get(7)?,
+                        uploaded_at: row.try_get(8)?,
+                        updated_at: row.try_get(9)?,
+                        color: row.try_get(10)?,
+                    })
+                },
             mapper: |it| ImageRow::from(it),
         }
     }
@@ -308,7 +338,7 @@ impl GetImageIdStmt {
             client,
             params: [organization_id, id, external_id],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -353,7 +383,7 @@ impl GetImageUrlByExternalChecksumStmt {
             client,
             params: [organization_id, external_checksum],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it.into(),
         }
     }
@@ -394,19 +424,22 @@ impl GetImageStmt {
             client,
             params: [organization_id, id, external_id],
             stmt: &mut self.0,
-            extractor: |row| ImageRowBorrowed {
-                id: row.get(0),
-                organization_id: row.get(1),
-                url: row.get(2),
-                external_id: row.get(3),
-                external_checksum: row.get(4),
-                position: row.get(5),
-                color_id: row.get(6),
-                uploaded_by: row.get(7),
-                uploaded_at: row.get(8),
-                updated_at: row.get(9),
-                color: row.get(10),
-            },
+            extractor:
+                |row: &tokio_postgres::Row| -> Result<ImageRowBorrowed, tokio_postgres::Error> {
+                    Ok(ImageRowBorrowed {
+                        id: row.try_get(0)?,
+                        organization_id: row.try_get(1)?,
+                        url: row.try_get(2)?,
+                        external_id: row.try_get(3)?,
+                        external_checksum: row.try_get(4)?,
+                        position: row.try_get(5)?,
+                        color_id: row.try_get(6)?,
+                        uploaded_by: row.try_get(7)?,
+                        uploaded_at: row.try_get(8)?,
+                        updated_at: row.try_get(9)?,
+                        color: row.try_get(10)?,
+                    })
+                },
             mapper: |it| ImageRow::from(it),
         }
     }
@@ -472,7 +505,7 @@ impl InsertImageStmt {
                 position,
             ],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }

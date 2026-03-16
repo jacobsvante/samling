@@ -219,7 +219,7 @@ pub struct CollectionRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> CollectionRowBorrowed,
+    extractor: fn(&tokio_postgres::Row) -> Result<CollectionRowBorrowed, tokio_postgres::Error>,
     mapper: fn(CollectionRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> CollectionRowQuery<'c, 'a, 's, C, T, N>
@@ -241,7 +241,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -252,7 +252,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -265,7 +269,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -274,7 +283,8 @@ pub struct CollectionSummaryRowQuery<'c, 'a, 's, C: GenericClient, T, const N: u
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> CollectionSummaryRowBorrowed,
+    extractor:
+        fn(&tokio_postgres::Row) -> Result<CollectionSummaryRowBorrowed, tokio_postgres::Error>,
     mapper: fn(CollectionSummaryRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> CollectionSummaryRowQuery<'c, 'a, 's, C, T, N>
@@ -296,7 +306,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -307,7 +317,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -320,7 +334,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -329,7 +348,7 @@ pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> i32,
+    extractor: fn(&tokio_postgres::Row) -> Result<i32, tokio_postgres::Error>,
     mapper: fn(i32) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
@@ -348,7 +367,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -359,7 +378,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -372,7 +395,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -397,20 +425,23 @@ impl SelectCollectionsStmt {
             client,
             params: [requester_id, organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| CollectionRowBorrowed {
-                id: row.get(0),
-                organization_id: row.get(1),
-                slug: row.get(2),
-                external_id: row.get(3),
-                name: row.get(4),
-                created_by: row.get(5),
-                created_at: row.get(6),
-                updated_at: row.get(7),
-                image_url: row.get(8),
-                acronym: row.get(9),
-                pricing: row.get(10),
-                sizes: row.get(11),
-            },
+            extractor:
+                |row: &tokio_postgres::Row| -> Result<CollectionRowBorrowed, tokio_postgres::Error> {
+                    Ok(CollectionRowBorrowed {
+                        id: row.try_get(0)?,
+                        organization_id: row.try_get(1)?,
+                        slug: row.try_get(2)?,
+                        external_id: row.try_get(3)?,
+                        name: row.try_get(4)?,
+                        created_by: row.try_get(5)?,
+                        created_at: row.try_get(6)?,
+                        updated_at: row.try_get(7)?,
+                        image_url: row.try_get(8)?,
+                        acronym: row.try_get(9)?,
+                        pricing: row.try_get(10)?,
+                        sizes: row.try_get(11)?,
+                    })
+                },
             mapper: |it| CollectionRow::from(it),
         }
     }
@@ -460,21 +491,25 @@ impl SelectCollectionSummariesStmt {
             client,
             params: [requester_id, organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| CollectionSummaryRowBorrowed {
-                id: row.get(0),
-                organization_id: row.get(1),
-                slug: row.get(2),
-                external_id: row.get(3),
-                name: row.get(4),
-                created_by: row.get(5),
-                created_at: row.get(6),
-                updated_at: row.get(7),
-                image_url: row.get(8),
-                acronym: row.get(9),
-                num_sizes: row.get(10),
-                num_colors: row.get(11),
-                num_styles: row.get(12),
-                pricing: row.get(13),
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<CollectionSummaryRowBorrowed, tokio_postgres::Error> {
+                Ok(CollectionSummaryRowBorrowed {
+                    id: row.try_get(0)?,
+                    organization_id: row.try_get(1)?,
+                    slug: row.try_get(2)?,
+                    external_id: row.try_get(3)?,
+                    name: row.try_get(4)?,
+                    created_by: row.try_get(5)?,
+                    created_at: row.try_get(6)?,
+                    updated_at: row.try_get(7)?,
+                    image_url: row.try_get(8)?,
+                    acronym: row.try_get(9)?,
+                    num_sizes: row.try_get(10)?,
+                    num_colors: row.try_get(11)?,
+                    num_styles: row.try_get(12)?,
+                    pricing: row.try_get(13)?,
+                })
             },
             mapper: |it| CollectionSummaryRow::from(it),
         }
@@ -524,7 +559,7 @@ impl GetCollectionIdStmt {
             client,
             params: [organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -593,7 +628,7 @@ impl InsertCollectionStmt {
                 created_by,
             ],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -762,7 +797,7 @@ impl AssociateCollectionSizesStmt {
             client,
             params: [collection_id, size_ids],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -808,7 +843,7 @@ impl ReplaceCollectionPricelistsStmt {
             client,
             params: [collection_id, collection_pricelist_relations],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -858,7 +893,7 @@ impl SetNewCollectionStylesStmt {
             client,
             params: [collection_id, style_ids],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -898,7 +933,7 @@ impl SetNewCollectionColorsStmt {
             client,
             params: [collection_id, color_ids],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }

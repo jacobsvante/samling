@@ -182,7 +182,7 @@ pub struct GroupRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> GroupRowBorrowed,
+    extractor: fn(&tokio_postgres::Row) -> Result<GroupRowBorrowed, tokio_postgres::Error>,
     mapper: fn(GroupRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> GroupRowQuery<'c, 'a, 's, C, T, N>
@@ -201,7 +201,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -212,7 +212,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -225,7 +229,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -234,7 +243,7 @@ pub struct GroupSummaryRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize>
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> GroupSummaryRowBorrowed,
+    extractor: fn(&tokio_postgres::Row) -> Result<GroupSummaryRowBorrowed, tokio_postgres::Error>,
     mapper: fn(GroupSummaryRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> GroupSummaryRowQuery<'c, 'a, 's, C, T, N>
@@ -256,7 +265,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -267,7 +276,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -280,7 +293,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -289,7 +307,7 @@ pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> i32,
+    extractor: fn(&tokio_postgres::Row) -> Result<i32, tokio_postgres::Error>,
     mapper: fn(i32) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
@@ -308,7 +326,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -319,7 +337,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -332,7 +354,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -356,20 +383,23 @@ impl SelectGroupsStmt {
             client,
             params: [organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| GroupRowBorrowed {
-                id: row.get(0),
-                slug: row.get(1),
-                external_id: row.get(2),
-                organization_id: row.get(3),
-                name: row.get(4),
-                description: row.get(5),
-                created_by: row.get(6),
-                created_at: row.get(7),
-                updated_at: row.get(8),
-                users: row.get(9),
-                collections: row.get(10),
-                price_lists: row.get(11),
-            },
+            extractor:
+                |row: &tokio_postgres::Row| -> Result<GroupRowBorrowed, tokio_postgres::Error> {
+                    Ok(GroupRowBorrowed {
+                        id: row.try_get(0)?,
+                        slug: row.try_get(1)?,
+                        external_id: row.try_get(2)?,
+                        organization_id: row.try_get(3)?,
+                        name: row.try_get(4)?,
+                        description: row.try_get(5)?,
+                        created_by: row.try_get(6)?,
+                        created_at: row.try_get(7)?,
+                        updated_at: row.try_get(8)?,
+                        users: row.try_get(9)?,
+                        collections: row.try_get(10)?,
+                        price_lists: row.try_get(11)?,
+                    })
+                },
             mapper: |it| GroupRow::from(it),
         }
     }
@@ -417,15 +447,19 @@ impl SelectGroupSummariesStmt {
             client,
             params: [organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| GroupSummaryRowBorrowed {
-                id: row.get(0),
-                slug: row.get(1),
-                external_id: row.get(2),
-                name: row.get(3),
-                description: row.get(4),
-                num_users: row.get(5),
-                num_collections: row.get(6),
-                num_price_lists: row.get(7),
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<GroupSummaryRowBorrowed, tokio_postgres::Error> {
+                Ok(GroupSummaryRowBorrowed {
+                    id: row.try_get(0)?,
+                    slug: row.try_get(1)?,
+                    external_id: row.try_get(2)?,
+                    name: row.try_get(3)?,
+                    description: row.try_get(4)?,
+                    num_users: row.try_get(5)?,
+                    num_collections: row.try_get(6)?,
+                    num_price_lists: row.try_get(7)?,
+                })
             },
             mapper: |it| GroupSummaryRow::from(it),
         }
@@ -474,7 +508,7 @@ impl GetGroupIdStmt {
             client,
             params: [organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -540,7 +574,7 @@ impl InsertGroupStmt {
                 created_by,
             ],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -703,7 +737,7 @@ impl ReplaceGroupUsersStmt {
             client,
             params: [group_id, user_ids],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -743,7 +777,7 @@ impl ReplaceGroupCollectionsStmt {
             client,
             params: [group_id, collection_ids],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -783,7 +817,7 @@ impl ReplaceGroupPricelistsStmt {
             client,
             params: [group_id, pricelist_ids],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -822,7 +856,7 @@ impl EnsureSuperuserAccessStmt {
             client,
             params: [organization_id],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }

@@ -344,7 +344,7 @@ pub struct StyleRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> StyleRowBorrowed,
+    extractor: fn(&tokio_postgres::Row) -> Result<StyleRowBorrowed, tokio_postgres::Error>,
     mapper: fn(StyleRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> StyleRowQuery<'c, 'a, 's, C, T, N>
@@ -363,7 +363,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -374,7 +374,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -387,7 +391,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -396,7 +405,7 @@ pub struct NestedStyleRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> 
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> NestedStyleRowBorrowed,
+    extractor: fn(&tokio_postgres::Row) -> Result<NestedStyleRowBorrowed, tokio_postgres::Error>,
     mapper: fn(NestedStyleRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> NestedStyleRowQuery<'c, 'a, 's, C, T, N>
@@ -418,7 +427,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -429,7 +438,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -442,7 +455,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -451,7 +469,8 @@ pub struct NestedStyleSummaryRowQuery<'c, 'a, 's, C: GenericClient, T, const N: 
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> NestedStyleSummaryRowBorrowed,
+    extractor:
+        fn(&tokio_postgres::Row) -> Result<NestedStyleSummaryRowBorrowed, tokio_postgres::Error>,
     mapper: fn(NestedStyleSummaryRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> NestedStyleSummaryRowQuery<'c, 'a, 's, C, T, N>
@@ -473,7 +492,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -484,7 +503,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -497,7 +520,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -506,7 +534,7 @@ pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> i32,
+    extractor: fn(&tokio_postgres::Row) -> Result<i32, tokio_postgres::Error>,
     mapper: fn(i32) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
@@ -525,7 +553,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -536,7 +564,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -549,7 +581,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -558,7 +595,7 @@ pub struct StyleRefsQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> StyleRefsBorrowed,
+    extractor: fn(&tokio_postgres::Row) -> Result<StyleRefsBorrowed, tokio_postgres::Error>,
     mapper: fn(StyleRefsBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> StyleRefsQuery<'c, 'a, 's, C, T, N>
@@ -577,7 +614,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -588,7 +625,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -601,7 +642,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -623,26 +669,29 @@ impl SelectStylesStmt {
             client,
             params: [organization_id, ids],
             stmt: &mut self.0,
-            extractor: |row| StyleRowBorrowed {
-                id: row.get(0),
-                organization_id: row.get(1),
-                slug: row.get(2),
-                external_id: row.get(3),
-                number: row.get(4),
-                name: row.get(5),
-                created_by: row.get(6),
-                created_at: row.get(7),
-                updated_at: row.get(8),
-                description: row.get(9),
-                core: row.get(10),
-                country_of_origin: row.get(11),
-                tariff_no: row.get(12),
-                unit_volume: row.get(13),
-                gross_weight: row.get(14),
-                net_weight: row.get(15),
-                categories: row.get(16),
-                attributes: row.get(17),
-            },
+            extractor:
+                |row: &tokio_postgres::Row| -> Result<StyleRowBorrowed, tokio_postgres::Error> {
+                    Ok(StyleRowBorrowed {
+                        id: row.try_get(0)?,
+                        organization_id: row.try_get(1)?,
+                        slug: row.try_get(2)?,
+                        external_id: row.try_get(3)?,
+                        number: row.try_get(4)?,
+                        name: row.try_get(5)?,
+                        created_by: row.try_get(6)?,
+                        created_at: row.try_get(7)?,
+                        updated_at: row.try_get(8)?,
+                        description: row.try_get(9)?,
+                        core: row.try_get(10)?,
+                        country_of_origin: row.try_get(11)?,
+                        tariff_no: row.try_get(12)?,
+                        unit_volume: row.try_get(13)?,
+                        gross_weight: row.try_get(14)?,
+                        net_weight: row.try_get(15)?,
+                        categories: row.try_get(16)?,
+                        attributes: row.try_get(17)?,
+                    })
+                },
             mapper: |it| StyleRow::from(it),
         }
     }
@@ -700,28 +749,32 @@ impl SelectCollectionStylesNestedStmt {
                 ids,
             ],
             stmt: &mut self.0,
-            extractor: |row| NestedStyleRowBorrowed {
-                id: row.get(0),
-                organization_id: row.get(1),
-                slug: row.get(2),
-                external_id: row.get(3),
-                number: row.get(4),
-                name: row.get(5),
-                created_by: row.get(6),
-                created_at: row.get(7),
-                updated_at: row.get(8),
-                description: row.get(9),
-                core: row.get(10),
-                country_of_origin: row.get(11),
-                tariff_no: row.get(12),
-                unit_volume: row.get(13),
-                gross_weight: row.get(14),
-                net_weight: row.get(15),
-                is_new: row.get(16),
-                colors: row.get(17),
-                prices: row.get(18),
-                attributes: row.get(19),
-                categories: row.get(20),
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<NestedStyleRowBorrowed, tokio_postgres::Error> {
+                Ok(NestedStyleRowBorrowed {
+                    id: row.try_get(0)?,
+                    organization_id: row.try_get(1)?,
+                    slug: row.try_get(2)?,
+                    external_id: row.try_get(3)?,
+                    number: row.try_get(4)?,
+                    name: row.try_get(5)?,
+                    created_by: row.try_get(6)?,
+                    created_at: row.try_get(7)?,
+                    updated_at: row.try_get(8)?,
+                    description: row.try_get(9)?,
+                    core: row.try_get(10)?,
+                    country_of_origin: row.try_get(11)?,
+                    tariff_no: row.try_get(12)?,
+                    unit_volume: row.try_get(13)?,
+                    gross_weight: row.try_get(14)?,
+                    net_weight: row.try_get(15)?,
+                    is_new: row.try_get(16)?,
+                    colors: row.try_get(17)?,
+                    prices: row.try_get(18)?,
+                    attributes: row.try_get(19)?,
+                    categories: row.try_get(20)?,
+                })
             },
             mapper: |it| NestedStyleRow::from(it),
         }
@@ -763,7 +816,7 @@ impl<
 }
 pub fn select_nested_style_summaries() -> SelectNestedStyleSummariesStmt {
     SelectNestedStyleSummariesStmt(crate::client::async_::Stmt::new(
-        "WITH attribute_matches AS ( SELECT styles_matching_attributes($1) ) SELECT style.id, style.name, style.number, coalesce(joined_colors.json_data, '[]') AS \"colors\" FROM style INNER JOIN ( SELECT color.style_id, json_agg( json_build_object( 'id', color.id, 'number', color.number, 'name', color.name, 'sizes', coalesce(joined_sizes.json_data, '[]'), 'primary_image', primary_image.json_data ) ORDER BY color.number ) FILTER ( WHERE color.id IS NOT NULL ) AS json_data FROM color INNER JOIN ( SELECT size.color_id, json_agg( json_build_object( 'id', size.id, 'number', size.number, 'name', size.name ) ORDER BY size.number ) FILTER ( WHERE size.id IS NOT NULL ) AS json_data FROM size INNER JOIN color ON size.color_id = color.id WHERE size.organization_id = $2 AND ($3::text[] IS NULL OR size.status = any($3)) GROUP BY size.color_id ) AS joined_sizes ON joined_sizes.color_id = color.id LEFT JOIN ( SELECT DISTINCT ON (image.color_id) image.color_id, json_build_object( 'id', image.id, 'url', image.url, 'external_id', image.external_id ) AS json_data FROM image WHERE image.organization_id = $2 AND image.position = 1 ) AS primary_image ON primary_image.color_id = color.id WHERE color.organization_id = $2 GROUP BY color.style_id ) AS joined_colors ON joined_colors.style_id = style.id LEFT JOIN ( SELECT style_category.style_id, array_agg(style_category.category_id) AS category_ids FROM style_category GROUP BY style_category.style_id ) AS style_categories ON style_categories.style_id = style.id WHERE style.organization_id = $2 AND ($4::int[] IS NULL OR style.id = any($4)) AND ($5::int[] IS NULL OR style_categories.category_ids && $5) AND ($1::int[] IS NULL OR style.id IN (SELECT * FROM attribute_matches)) ORDER BY style.number",
+        "WITH attribute_matches AS ( SELECT styles_matching_attributes($1) ) SELECT style.id, style.name, style.number, coalesce(joined_colors.json_data, '[]') AS \"colors\" FROM style INNER JOIN ( SELECT color.style_id, json_agg( json_build_object( 'id', color.id, 'number', color.number, 'name', color.name, 'sizes', coalesce(joined_sizes.json_data, '[]'), 'primary_image', primary_image.json_data ) ORDER BY color.number ) FILTER ( WHERE color.id IS NOT NULL ) AS json_data FROM color INNER JOIN ( SELECT size.color_id, json_agg( json_build_object( 'id', size.id, 'number', size.number, 'name', size.name, 'external_id', size.external_id ) ORDER BY size.number ) FILTER ( WHERE size.id IS NOT NULL ) AS json_data FROM size INNER JOIN color ON size.color_id = color.id WHERE size.organization_id = $2 AND ($3::text[] IS NULL OR size.status = any($3)) GROUP BY size.color_id ) AS joined_sizes ON joined_sizes.color_id = color.id LEFT JOIN ( SELECT DISTINCT ON (image.color_id) image.color_id, json_build_object( 'id', image.id, 'url', image.url, 'external_id', image.external_id ) AS json_data FROM image WHERE image.organization_id = $2 AND image.position = 1 ) AS primary_image ON primary_image.color_id = color.id WHERE color.organization_id = $2 GROUP BY color.style_id ) AS joined_colors ON joined_colors.style_id = style.id LEFT JOIN ( SELECT style_category.style_id, array_agg(style_category.category_id) AS category_ids FROM style_category GROUP BY style_category.style_id ) AS style_categories ON style_categories.style_id = style.id WHERE style.organization_id = $2 AND ($4::int[] IS NULL OR style.id = any($4)) AND ($5::int[] IS NULL OR style_categories.category_ids && $5) AND ($1::int[] IS NULL OR style.id IN (SELECT * FROM attribute_matches)) ORDER BY style.number",
     ))
 }
 pub struct SelectNestedStyleSummariesStmt(crate::client::async_::Stmt);
@@ -791,11 +844,15 @@ impl SelectNestedStyleSummariesStmt {
             client,
             params: [attributes, organization_id, statuses, ids, categories],
             stmt: &mut self.0,
-            extractor: |row| NestedStyleSummaryRowBorrowed {
-                id: row.get(0),
-                name: row.get(1),
-                number: row.get(2),
-                colors: row.get(3),
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<NestedStyleSummaryRowBorrowed, tokio_postgres::Error> {
+                Ok(NestedStyleSummaryRowBorrowed {
+                    id: row.try_get(0)?,
+                    name: row.try_get(1)?,
+                    number: row.try_get(2)?,
+                    colors: row.try_get(3)?,
+                })
             },
             mapper: |it| NestedStyleSummaryRow::from(it),
         }
@@ -855,7 +912,7 @@ impl GetStyleIdStmt {
             client,
             params: [organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -903,11 +960,14 @@ impl GetStyleRefsStmt {
             client,
             params: [organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| StyleRefsBorrowed {
-                id: row.get(0),
-                external_id: row.get(1),
-                slug: row.get(2),
-            },
+            extractor:
+                |row: &tokio_postgres::Row| -> Result<StyleRefsBorrowed, tokio_postgres::Error> {
+                    Ok(StyleRefsBorrowed {
+                        id: row.try_get(0)?,
+                        external_id: row.try_get(1)?,
+                        slug: row.try_get(2)?,
+                    })
+                },
             mapper: |it| StyleRefs::from(it),
         }
     }
@@ -990,7 +1050,7 @@ impl InsertStyleStmt {
                 created_by,
             ],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -1092,7 +1152,7 @@ impl UpdateStyleStmt {
                 id,
             ],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -1158,7 +1218,7 @@ impl DeleteStyleStmt {
             client,
             params: [organization_id, id],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }

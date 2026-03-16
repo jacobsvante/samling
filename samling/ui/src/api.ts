@@ -28,6 +28,7 @@ import {
   UpdateCollection,
   CreateCollection,
   Color,
+  Size,
   StyleFilters,
   NestedStyleSummary,
   Category,
@@ -74,6 +75,10 @@ interface ApiSurface {
     token: string,
     organizationId: number,
   ) => Promise<Result<Color[], ApiErrorResponse>>;
+  fetchSizes: (
+    token: string,
+    organizationId: number,
+  ) => Promise<Result<Size[], ApiErrorResponse>>;
   fetchNestedStyleSummaries: (
     token: string,
     organizationId: number,
@@ -409,6 +414,14 @@ function makeApi(baseUrl: string): ApiSurface {
       organizationId: number,
     ): Promise<Result<Color[], ApiErrorResponse>> {
       return await getJson<Color[]>(`/${organizationId}/colors`, {
+        token,
+      });
+    },
+    async fetchSizes(
+      token: string,
+      organizationId: number,
+    ): Promise<Result<Size[], ApiErrorResponse>> {
+      return await getJson<Size[]>(`/${organizationId}/sizes`, {
         token,
       });
     },
@@ -974,6 +987,25 @@ export function useColors(): [ColorsFetchResult, () => void] {
   }, [token, activeOrganization, refreshCount]);
 
   return [fetchResult, refresh];
+}
+
+type SizesFetchResult = Result<Size[] | null, ApiErrorResponse>;
+
+export function useSizes(): SizesFetchResult {
+  const { token, activeOrganization } = useAppSelector((state) => state.user);
+  const [fetchResult, setFetchResult] = useState(Ok(null) as SizesFetchResult);
+  useLogoutOnExpiredToken(fetchResult);
+  useEffect(() => {
+    if (!!token && !!activeOrganization) {
+      api
+        .fetchSizes(token as string, activeOrganization.organization.id)
+        .then((result) => {
+          setFetchResult(result);
+        });
+    }
+  }, [token, activeOrganization]);
+
+  return fetchResult;
 }
 
 function useRefresh(): [number, () => void] {

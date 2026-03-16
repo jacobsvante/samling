@@ -50,7 +50,8 @@ pub struct EntityFilterChoiceRowQuery<'c, 'a, 's, C: GenericClient, T, const N: 
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> EntityFilterChoiceRowBorrowed,
+    extractor:
+        fn(&tokio_postgres::Row) -> Result<EntityFilterChoiceRowBorrowed, tokio_postgres::Error>,
     mapper: fn(EntityFilterChoiceRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> EntityFilterChoiceRowQuery<'c, 'a, 's, C, T, N>
@@ -72,7 +73,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -83,7 +84,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -96,7 +101,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -105,7 +115,8 @@ pub struct StringFilterChoiceRowQuery<'c, 'a, 's, C: GenericClient, T, const N: 
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> StringFilterChoiceRowBorrowed,
+    extractor:
+        fn(&tokio_postgres::Row) -> Result<StringFilterChoiceRowBorrowed, tokio_postgres::Error>,
     mapper: fn(StringFilterChoiceRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> StringFilterChoiceRowQuery<'c, 'a, 's, C, T, N>
@@ -127,7 +138,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -138,7 +149,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -151,7 +166,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -172,11 +192,15 @@ impl SelectStyleFilterChoicesStmt {
             client,
             params: [organization_id],
             stmt: &mut self.0,
-            extractor: |row| EntityFilterChoiceRowBorrowed {
-                id: row.get(0),
-                title: row.get(1),
-                subtitle: row.get(2),
-                image: row.get(3),
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<EntityFilterChoiceRowBorrowed, tokio_postgres::Error> {
+                Ok(EntityFilterChoiceRowBorrowed {
+                    id: row.try_get(0)?,
+                    title: row.try_get(1)?,
+                    subtitle: row.try_get(2)?,
+                    image: row.try_get(3)?,
+                })
             },
             mapper: |it| EntityFilterChoiceRow::from(it),
         }
@@ -198,11 +222,15 @@ impl SelectCategoryFilterChoicesStmt {
             client,
             params: [organization_id],
             stmt: &mut self.0,
-            extractor: |row| EntityFilterChoiceRowBorrowed {
-                id: row.get(0),
-                title: row.get(1),
-                subtitle: row.get(2),
-                image: row.get(3),
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<EntityFilterChoiceRowBorrowed, tokio_postgres::Error> {
+                Ok(EntityFilterChoiceRowBorrowed {
+                    id: row.try_get(0)?,
+                    title: row.try_get(1)?,
+                    subtitle: row.try_get(2)?,
+                    image: row.try_get(3)?,
+                })
             },
             mapper: |it| EntityFilterChoiceRow::from(it),
         }
@@ -224,11 +252,15 @@ impl SelectAttributeFilterChoicesStmt {
             client,
             params: [organization_id],
             stmt: &mut self.0,
-            extractor: |row| EntityFilterChoiceRowBorrowed {
-                id: row.get(0),
-                title: row.get(1),
-                subtitle: row.get(2),
-                image: row.get(3),
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<EntityFilterChoiceRowBorrowed, tokio_postgres::Error> {
+                Ok(EntityFilterChoiceRowBorrowed {
+                    id: row.try_get(0)?,
+                    title: row.try_get(1)?,
+                    subtitle: row.try_get(2)?,
+                    image: row.try_get(3)?,
+                })
             },
             mapper: |it| EntityFilterChoiceRow::from(it),
         }
@@ -250,7 +282,13 @@ impl SelectStatusFilterChoicesStmt {
             client,
             params: [organization_id],
             stmt: &mut self.0,
-            extractor: |row| StringFilterChoiceRowBorrowed { title: row.get(0) },
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<StringFilterChoiceRowBorrowed, tokio_postgres::Error> {
+                Ok(StringFilterChoiceRowBorrowed {
+                    title: row.try_get(0)?,
+                })
+            },
             mapper: |it| StringFilterChoiceRow::from(it),
         }
     }

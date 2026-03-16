@@ -131,7 +131,7 @@ pub struct PriceListRowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> PriceListRowBorrowed,
+    extractor: fn(&tokio_postgres::Row) -> Result<PriceListRowBorrowed, tokio_postgres::Error>,
     mapper: fn(PriceListRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> PriceListRowQuery<'c, 'a, 's, C, T, N>
@@ -153,7 +153,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -164,7 +164,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -177,7 +181,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -186,7 +195,8 @@ pub struct PriceListSummaryRowQuery<'c, 'a, 's, C: GenericClient, T, const N: us
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> PriceListSummaryRowBorrowed,
+    extractor:
+        fn(&tokio_postgres::Row) -> Result<PriceListSummaryRowBorrowed, tokio_postgres::Error>,
     mapper: fn(PriceListSummaryRowBorrowed) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> PriceListSummaryRowQuery<'c, 'a, 's, C, T, N>
@@ -208,7 +218,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -219,7 +229,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -232,7 +246,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -241,7 +260,7 @@ pub struct I32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> i32,
+    extractor: fn(&tokio_postgres::Row) -> Result<i32, tokio_postgres::Error>,
     mapper: fn(i32) -> T,
 }
 impl<'c, 'a, 's, C, T: 'c, const N: usize> I32Query<'c, 'a, 's, C, T, N>
@@ -260,7 +279,7 @@ where
     pub async fn one(self) -> Result<T, tokio_postgres::Error> {
         let stmt = self.stmt.prepare(self.client).await?;
         let row = self.client.query_one(stmt, &self.params).await?;
-        Ok((self.mapper)((self.extractor)(&row)))
+        Ok((self.mapper)((self.extractor)(&row)?))
     }
     pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
         self.iter().await?.try_collect().await
@@ -271,7 +290,11 @@ where
             .client
             .query_opt(stmt, &self.params)
             .await?
-            .map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
     }
     pub async fn iter(
         self,
@@ -284,7 +307,12 @@ where
             .client
             .query_raw(stmt, crate::slice_iter(&self.params))
             .await?
-            .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
             .into_stream();
         Ok(it)
     }
@@ -306,16 +334,19 @@ impl ListPricelistsStmt {
             client,
             params: [requester_id, organization_id],
             stmt: &mut self.0,
-            extractor: |row| PriceListRowBorrowed {
-                id: row.get(0),
-                organization_id: row.get(1),
-                name: row.get(2),
-                slug: row.get(3),
-                external_id: row.get(4),
-                created_by: row.get(5),
-                created_at: row.get(6),
-                updated_at: row.get(7),
-            },
+            extractor:
+                |row: &tokio_postgres::Row| -> Result<PriceListRowBorrowed, tokio_postgres::Error> {
+                    Ok(PriceListRowBorrowed {
+                        id: row.try_get(0)?,
+                        organization_id: row.try_get(1)?,
+                        name: row.try_get(2)?,
+                        slug: row.try_get(3)?,
+                        external_id: row.try_get(4)?,
+                        created_by: row.try_get(5)?,
+                        created_at: row.try_get(6)?,
+                        updated_at: row.try_get(7)?,
+                    })
+                },
             mapper: |it| PriceListRow::from(it),
         }
     }
@@ -355,11 +386,15 @@ impl ListPricelistSummariesStmt {
             client,
             params: [requester_id, organization_id],
             stmt: &mut self.0,
-            extractor: |row| PriceListSummaryRowBorrowed {
-                id: row.get(0),
-                name: row.get(1),
-                slug: row.get(2),
-                external_id: row.get(3),
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<PriceListSummaryRowBorrowed, tokio_postgres::Error> {
+                Ok(PriceListSummaryRowBorrowed {
+                    id: row.try_get(0)?,
+                    name: row.try_get(1)?,
+                    slug: row.try_get(2)?,
+                    external_id: row.try_get(3)?,
+                })
             },
             mapper: |it| PriceListSummaryRow::from(it),
         }
@@ -402,16 +437,19 @@ impl GetPricelistStmt {
             client,
             params: [organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| PriceListRowBorrowed {
-                id: row.get(0),
-                organization_id: row.get(1),
-                name: row.get(2),
-                slug: row.get(3),
-                external_id: row.get(4),
-                created_by: row.get(5),
-                created_at: row.get(6),
-                updated_at: row.get(7),
-            },
+            extractor:
+                |row: &tokio_postgres::Row| -> Result<PriceListRowBorrowed, tokio_postgres::Error> {
+                    Ok(PriceListRowBorrowed {
+                        id: row.try_get(0)?,
+                        organization_id: row.try_get(1)?,
+                        name: row.try_get(2)?,
+                        slug: row.try_get(3)?,
+                        external_id: row.try_get(4)?,
+                        created_by: row.try_get(5)?,
+                        created_at: row.try_get(6)?,
+                        updated_at: row.try_get(7)?,
+                    })
+                },
             mapper: |it| PriceListRow::from(it),
         }
     }
@@ -459,7 +497,7 @@ impl GetPricelistIdStmt {
             client,
             params: [organization_id, id, external_id, slug],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -516,7 +554,7 @@ impl InsertPricelistStmt {
             client,
             params: [name, slug, external_id, organization_id, created_by],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }
@@ -671,7 +709,7 @@ impl AllowedPricelistIdsStmt {
             client,
             params: [organization_id, user_id],
             stmt: &mut self.0,
-            extractor: |row| row.get(0),
+            extractor: |row| Ok(row.try_get(0)?),
             mapper: |it| it,
         }
     }

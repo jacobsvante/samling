@@ -52,6 +52,7 @@ pub struct NestedSizeSummary {
     pub id: Id<Size>,
     pub number: String,
     pub name: I18nString,
+    pub external_id: Option<ExternalId<Size>>,
 }
 
 impl NestedSize {
@@ -60,6 +61,7 @@ impl NestedSize {
             id: self.id,
             number: self.number,
             name: self.name,
+            external_id: self.external_id,
         }
     }
 }

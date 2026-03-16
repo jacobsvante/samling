@@ -809,9 +809,10 @@ export interface NestedColorSummary {
  * Nested size (well, used by NestedColor, so `color` field isn't needed)
  */
 export interface NestedSizeSummary {
-    id:     number;
-    name:   I18NString;
-    number: string;
+    id:          number;
+    name:        I18NString;
+    number:      string;
+    external_id?: null | string;
     [property: string]: any;
 }
 
