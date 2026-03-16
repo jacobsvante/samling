@@ -129,7 +129,7 @@ export interface User {
     email:          string;
     groups:         GroupSummary[];
     id:             number;
-    last_sign_in:   string;
+    last_sign_in?:  null | string;
     name:           string;
     organizations:  UserOrganization[];
     profile_image?: null | string;
@@ -282,7 +282,7 @@ export interface PriceListSummary {
 export interface UserSummary {
     email:          string;
     id:             number;
-    last_sign_in:   string;
+    last_sign_in?:  null | string;
     name:           string;
     profile_image?: null | string;
     [property: string]: any;
@@ -377,7 +377,7 @@ export interface Collection {
  * Nested size (well, used by NestedColor, so `color` field isn't needed)
  */
 export interface NestedSize {
-    delivery_period?: string;
+    delivery_period?: null | string;
     ean_code?:        null | string;
     external_id?:     null | string;
     id:               number;
@@ -866,20 +866,20 @@ export interface PriceList {
  * Size
  */
 export interface Size {
-    color:           ColorSummary;
-    created_at:      string;
-    created_by?:     number | null;
-    delivery_period: string;
-    ean_code?:       null | string;
-    external_id?:    null | string;
-    id:              number;
-    name:            I18NString;
-    number:          string;
-    position:        number;
-    service_item?:   boolean | null;
-    slug:            string;
-    status?:         null | string;
-    updated_at:      string;
+    color:            ColorSummary;
+    created_at:       string;
+    created_by?:      number | null;
+    delivery_period?: null | string;
+    ean_code?:        null | string;
+    external_id?:     null | string;
+    id:               number;
+    name:             I18NString;
+    number:           string;
+    position:         number;
+    service_item?:    boolean | null;
+    slug:             string;
+    status?:          null | string;
+    updated_at:       string;
     [property: string]: any;
 }
 
@@ -1745,7 +1745,7 @@ const typeMap: any = {
         { json: "email", js: "email", typ: "" },
         { json: "groups", js: "groups", typ: a(r("GroupSummary")) },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "last_sign_in", js: "last_sign_in", typ: "" },
+        { json: "last_sign_in", js: "last_sign_in", typ: u(undefined, u(null, "")) },
         { json: "name", js: "name", typ: "" },
         { json: "organizations", js: "organizations", typ: a(r("UserOrganization")) },
         { json: "profile_image", js: "profile_image", typ: u(undefined, u(null, "")) },
@@ -1851,7 +1851,7 @@ const typeMap: any = {
     "UserSummary": o([
         { json: "email", js: "email", typ: "" },
         { json: "id", js: "id", typ: 3.14 },
-        { json: "last_sign_in", js: "last_sign_in", typ: "" },
+        { json: "last_sign_in", js: "last_sign_in", typ: u(undefined, u(null, "")) },
         { json: "name", js: "name", typ: "" },
         { json: "profile_image", js: "profile_image", typ: u(undefined, u(null, "")) },
     ], "any"),
@@ -1916,7 +1916,7 @@ const typeMap: any = {
         { json: "updated_at", js: "updated_at", typ: "" },
     ], "any"),
     "NestedSize": o([
-        { json: "delivery_period", js: "delivery_period", typ: u(undefined, "") },
+        { json: "delivery_period", js: "delivery_period", typ: u(undefined, u(null, "")) },
         { json: "ean_code", js: "ean_code", typ: u(undefined, u(null, "")) },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
@@ -2183,7 +2183,7 @@ const typeMap: any = {
         { json: "color", js: "color", typ: r("ColorSummary") },
         { json: "created_at", js: "created_at", typ: "" },
         { json: "created_by", js: "created_by", typ: u(undefined, u(3.14, null)) },
-        { json: "delivery_period", js: "delivery_period", typ: "" },
+        { json: "delivery_period", js: "delivery_period", typ: u(undefined, u(null, "")) },
         { json: "ean_code", js: "ean_code", typ: u(undefined, u(null, "")) },
         { json: "external_id", js: "external_id", typ: u(undefined, u(null, "")) },
         { json: "id", js: "id", typ: 3.14 },
